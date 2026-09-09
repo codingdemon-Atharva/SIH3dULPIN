@@ -1,1390 +1,1377 @@
 
 "use client";
 
-import React, {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Map,
+  NavigationControl,
+  ScaleControl,
+  Popup,
+  LngLatBounds,
+  setWorkerUrl,
+} from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
-import type {
-  ParsedBuilding,
-  Property2D,
-} from "@/src/lib/parser/types";
+export interface Point2D {
+  x: number;
+  y: number;
+}
 
-/* ============================================================
-   PROPS
-   ============================================================ */
+export interface Property2D {
+  id: string;
+  unitNumber: string;
+  floorNumber: number;
+  area: number;
+  polygon: Point2D[];
+  ulpin?: string;
+  spaceType?: string;
+}
+
+export interface Floor2D {
+  floorNumber: number;
+  elevation: number;
+  height: number;
+  units: Property2D[];
+}
+
+export interface ParsedBuilding {
+  id: string;
+  name?: string;
+  address?: string;
+  georeference?: {
+    latitude: number;
+    longitude: number;
+  };
+  floors: Floor2D[];
+}
 
 interface RealWorldMapViewerProps {
+  building?: Partial<ParsedBuilding> | ParsedBuilding;
+  approvalStatus?: string;
+  onPropertyNavigate?: (property: Property2D) => void;
+  onPropertySelect?: (property: Property2D) => void;
+}
+
+const SOURCE_ID = "cadastral-source";
+const FOOTPRINT_LAYER = "cadastral-footprints";
+const EXTRUSION_LAYER = "cadastral-extrusions";
+const OUTLINE_LAYER = "cadastral-outlines";
+
+/**
+ * MapLibre v6 + Next.js/Turbopack
+ *
+ * Required:
+ * public/maplibre/maplibre-gl-worker.mjs
+ * public/maplibre/maplibre-gl-shared.mjs
+ */
+setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
+
+export default function RealWorldMapViewer({
+  building,
+  approvalStatus,
+  onPropertyNavigate,
+  onPropertySelect,
+}: RealWorldMapViewerProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const didFitRef = useRef(false);
+
+  const [mapReady, setMapReady] = useState(false);
+  const [is3D, setIs3D] = useState(true);
+  const [rotating, setRotating] = useState(false);
+
+  const anchor = building?.georeference;
+
+  const hasValidGeoreference =
+    !!anchor &&
+    Number.isFinite(anchor.latitude) &&
+    Number.isFinite(anchor.longitude);
+
   /**
-   * Parsed building produced from the uploaded
-   * cadastral / GeoJSON file.
-   *
-   * The real-world map location MUST come from:
-   *
-   * building.georeference.latitude
-   * building.georeference.longitude
+   * Convert local metre offsets into WGS84.
    */
-  building?: ParsedBuilding | null;
+  const localToLngLat = (
+    point: Point2D,
+    anchorLng: number,
+    anchorLat: number
+  ): [number, number] => {
+    const metersPerDegreeLat = 111320;
 
-  approvalStatus?:
-    | "PENDING_REVIEW"
-    | "APPROVED"
-    | "REJECTED";
+    const metersPerDegreeLng =
+      111320 *
+      Math.cos((anchorLat * Math.PI) / 180);
 
-  onPropertySelect?: (
-    property: Property2D
-  ) => void;
-
-  onPropertyNavigate?: (
-    property: Property2D
-  ) => void;
-}
-
-/* ============================================================
-   GEOREFERENCE TYPE
-   ============================================================ */
-
-interface BuildingGeoreference {
-  latitude: number;
-  longitude: number;
-}
-
-/* ============================================================
-   LOCAL METRES → WGS84
-   ============================================================ */
-
-/**
- * Converts local building coordinates into WGS84
- * latitude / longitude.
- *
- * Uploaded GeoJSON coordinates are assumed to be:
- *
- *      x = metres east / west
- *      y = metres north / south
- *
- * relative to the uploaded building georeference.
- *
- * Example:
- *
- *      GeoJSON:
- *
- *      [0, 0]
- *
- *      becomes:
- *
- *      building latitude / longitude
- *
- *      [10, 20]
- *
- *      means:
- *
- *      10 metres east
- *      20 metres north
- *
- * from the building anchor.
- */
-function localMetersToLatLng(
-  x: number,
-  y: number,
-  anchorLat: number,
-  anchorLng: number
-): [number, number] {
-  const METERS_PER_DEGREE_LAT =
-    111_320;
-
-  const latOffset =
-    y / METERS_PER_DEGREE_LAT;
-
-  const latitudeRadians =
-    (anchorLat * Math.PI) / 180;
-
-  const metersPerDegreeLng =
-    METERS_PER_DEGREE_LAT *
-    Math.cos(latitudeRadians);
-
-  const lngOffset =
-    Math.abs(metersPerDegreeLng) >
-    0.000001
-      ? x / metersPerDegreeLng
-      : 0;
-
-  return [
-    anchorLat + latOffset,
-    anchorLng + lngOffset,
-  ];
-}
-
-/* ============================================================
-   GEOREFERENCE VALIDATION
-   ============================================================ */
-
-/**
- * Extracts valid coordinates from the uploaded
- * ParsedBuilding.
- *
- * IMPORTANT:
- *
- * There are NO fallback coordinates.
- *
- * If the uploaded file does not have valid
- * latitude/longitude, null is returned.
- */
-function getBuildingGeoreference(
-  building?: ParsedBuilding | null
-): BuildingGeoreference | null {
-  const latitude = Number(
-    building?.georeference?.latitude
-  );
-
-  const longitude = Number(
-    building?.georeference?.longitude
-  );
-
-  const validLatitude =
-    Number.isFinite(latitude) &&
-    Math.abs(latitude) <= 90;
-
-  const validLongitude =
-    Number.isFinite(longitude) &&
-    Math.abs(longitude) <= 180;
-
-  if (
-    !validLatitude ||
-    !validLongitude
-  ) {
-    return null;
-  }
-
-  return {
-    latitude,
-    longitude,
+    return [
+      anchorLng + point.x / metersPerDegreeLng,
+      anchorLat + point.y / metersPerDegreeLat,
+    ];
   };
-}
 
-/* ============================================================
-   MISSING GEOREFERENCE VIEW
-   ============================================================ */
+  /**
+   * Create GeoJSON from all floors and units.
+   */
+  const createGeoJSON = () => {
+    if (!hasValidGeoreference) {
+      return {
+        type: "FeatureCollection" as const,
+        features: [],
+      };
+    }
 
-function MissingGeoreferenceView() {
-  return (
-    <section
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        minHeight: "500px",
+    const features: any[] = [];
 
-        borderRadius: "14px",
-        overflow: "hidden",
+    for (const floor of building?.floors ?? []) {
+      for (const unit of floor.units ?? []) {
+        if (!unit.polygon || unit.polygon.length < 3) {
+          continue;
+        }
 
-        border:
-          "1px solid #1e293b",
+        const coordinates = unit.polygon.map((point) =>
+          localToLngLat(
+            point,
+            anchor!.longitude,
+            anchor!.latitude
+          )
+        );
 
-        background:
-          "#020617",
+        /**
+         * Close polygon.
+         */
+        const first = coordinates[0];
+        const last =
+          coordinates[coordinates.length - 1];
 
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        if (
+          first &&
+          last &&
+          (first[0] !== last[0] ||
+            first[1] !== last[1])
+        ) {
+          coordinates.push(first);
+        }
 
-        color: "#ffffff",
+        const base =
+          Number(floor.elevation) || 0;
 
-        padding: "30px",
+        const floorHeight =
+          Number(floor.height) || 3;
 
-        textAlign: "center",
-      }}
-    >
+        const height =
+          base + floorHeight;
+
+        features.push({
+          type: "Feature",
+          id: unit.id,
+
+          properties: {
+            id: unit.id,
+            unitNumber: unit.unitNumber,
+            floorNumber: floor.floorNumber,
+            area: unit.area,
+            ulpin: unit.ulpin ?? "",
+            spaceType:
+              unit.spaceType ?? "Unit",
+            base,
+            height,
+          },
+
+          geometry: {
+            type: "Polygon",
+            coordinates: [coordinates],
+          },
+        });
+      }
+    }
+
+    return {
+      type: "FeatureCollection" as const,
+      features,
+    };
+  };
+
+  /**
+   * Calculate complete building bounds.
+   */
+  const getBuildingBounds = () => {
+    if (!hasValidGeoreference) {
+      return null;
+    }
+
+    const bounds = new LngLatBounds();
+
+    let hasCoordinates = false;
+
+    for (const floor of building?.floors ?? []) {
+      for (const unit of floor.units ?? []) {
+        for (const point of unit.polygon ?? []) {
+          const [lng, lat] =
+            localToLngLat(
+              point,
+              anchor!.longitude,
+              anchor!.latitude
+            );
+
+          bounds.extend([lng, lat]);
+          hasCoordinates = true;
+        }
+      }
+    }
+
+    return hasCoordinates ? bounds : null;
+  };
+
+  /**
+   * Fit the entire uploaded structure.
+   */
+  const fitBuilding = (duration = 800) => {
+    const map = mapRef.current;
+
+    if (!map) {
+      return;
+    }
+
+    const bounds = getBuildingBounds();
+
+    if (!bounds) {
+      return;
+    }
+
+    map.fitBounds(bounds, {
+      padding: {
+        top: 140,
+        bottom: 190,
+        left: 240,
+        right: 240,
+      },
+
+      duration,
+
+      maxZoom: 18,
+
+      pitch: is3D ? 55 : 0,
+
+      bearing: map.getBearing(),
+    });
+  };
+
+  /**
+   * ---------------------------------------------------------
+   * MAP INITIALIZATION
+   * ---------------------------------------------------------
+   */
+  useEffect(() => {
+    if (!containerRef.current) {
+      return;
+    }
+
+    if (!hasValidGeoreference) {
+      return;
+    }
+
+    if (mapRef.current) {
+      return;
+    }
+
+    const map = new Map({
+      container: containerRef.current,
+
+      /**
+       * OpenFreeMap vector basemap.
+       */
+      style:
+        "https://tiles.openfreemap.org/styles/bright",
+
+      center: [
+        anchor!.longitude,
+        anchor!.latitude,
+      ],
+
+      zoom: 16.5,
+
+      minZoom: 3,
+      maxZoom: 22,
+
+      pitch: 55,
+      bearing: 0,
+
+      antialias: true,
+
+      attributionControl: true,
+    });
+
+    mapRef.current = map;
+
+    map.addControl(
+      new NavigationControl({
+        showCompass: true,
+        showZoom: false,
+        visualizePitch: true,
+      }),
+      "top-right"
+    );
+
+    map.addControl(
+      new ScaleControl({
+        maxWidth: 140,
+        unit: "metric",
+      }),
+      "bottom-left"
+    );
+
+    map.on("load", () => {
+      setMapReady(true);
+    });
+
+    return () => {
+      setMapReady(false);
+
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [
+    hasValidGeoreference,
+    anchor?.latitude,
+    anchor?.longitude,
+  ]);
+
+  /**
+   * ---------------------------------------------------------
+   * CADASTRAL LAYERS
+   * ---------------------------------------------------------
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map || !mapReady) {
+      return;
+    }
+
+    if (!hasValidGeoreference) {
+      return;
+    }
+
+    const addLayers = () => {
+      /**
+       * Remove old layers.
+       */
+      if (map.getLayer(OUTLINE_LAYER)) {
+        map.removeLayer(OUTLINE_LAYER);
+      }
+
+      if (map.getLayer(EXTRUSION_LAYER)) {
+        map.removeLayer(EXTRUSION_LAYER);
+      }
+
+      if (map.getLayer(FOOTPRINT_LAYER)) {
+        map.removeLayer(FOOTPRINT_LAYER);
+      }
+
+      if (map.getSource(SOURCE_ID)) {
+        map.removeSource(SOURCE_ID);
+      }
+
+      const geojson = createGeoJSON();
+
+      map.addSource(SOURCE_ID, {
+        type: "geojson",
+        data: geojson,
+      });
+
+      /**
+       * Ground footprint.
+       */
+      map.addLayer({
+        id: FOOTPRINT_LAYER,
+        type: "fill",
+        source: SOURCE_ID,
+
+        paint: {
+          "fill-color": [
+            "match",
+            ["get", "spaceType"],
+
+            "STAIR",
+            "#f97316",
+
+            "STAIRS",
+            "#f97316",
+
+            "LIFT",
+            "#8b5cf6",
+
+            "ELEVATOR",
+            "#8b5cf6",
+
+            "CORRIDOR",
+            "#64748b",
+
+            "COMMON",
+            "#0ea5e9",
+
+            "#22c55e",
+          ],
+
+          "fill-opacity": 0.28,
+        },
+      });
+
+      /**
+       * 3D extrusion.
+       */
+      map.addLayer({
+        id: EXTRUSION_LAYER,
+        type: "fill-extrusion",
+        source: SOURCE_ID,
+
+        paint: {
+          "fill-extrusion-color": [
+            "match",
+            ["get", "spaceType"],
+
+            "STAIR",
+            "#f97316",
+
+            "STAIRS",
+            "#f97316",
+
+            "LIFT",
+            "#8b5cf6",
+
+            "ELEVATOR",
+            "#8b5cf6",
+
+            "CORRIDOR",
+            "#64748b",
+
+            "COMMON",
+            "#0ea5e9",
+
+            "#22c55e",
+          ],
+
+          "fill-extrusion-base": [
+            "to-number",
+            ["get", "base"],
+            0,
+          ],
+
+          "fill-extrusion-height": [
+            "to-number",
+            ["get", "height"],
+            3,
+          ],
+
+          "fill-extrusion-opacity": 0.86,
+
+          "fill-extrusion-vertical-gradient": true,
+        },
+      });
+
+      /**
+       * Unit outlines.
+       */
+      map.addLayer({
+        id: OUTLINE_LAYER,
+        type: "line",
+        source: SOURCE_ID,
+
+        paint: {
+          "line-color": [
+            "match",
+            ["get", "spaceType"],
+
+            "STAIR",
+            "#c2410c",
+
+            "STAIRS",
+            "#c2410c",
+
+            "LIFT",
+            "#6d28d9",
+
+            "ELEVATOR",
+            "#6d28d9",
+
+            "CORRIDOR",
+            "#334155",
+
+            "#111827",
+          ],
+
+          "line-width": [
+            "match",
+            ["get", "spaceType"],
+
+            "STAIR",
+            2.8,
+
+            "STAIRS",
+            2.8,
+
+            "LIFT",
+            2.8,
+
+            "ELEVATOR",
+            2.8,
+
+            1.8,
+          ],
+
+          "line-opacity": 0.95,
+        },
+      });
+
+      /**
+       * Click unit.
+       */
+      const handleClick = (event: any) => {
+        const features =
+          map.queryRenderedFeatures(
+            event.point,
+            {
+              layers: [
+                EXTRUSION_LAYER,
+                FOOTPRINT_LAYER,
+              ],
+            }
+          );
+
+        if (!features.length) {
+          return;
+        }
+
+        const feature = features[0];
+
+        const properties =
+          feature.properties ?? {};
+
+        const unit: Property2D = {
+          id: String(
+            properties.id ?? ""
+          ),
+
+          unitNumber: String(
+            properties.unitNumber ?? ""
+          ),
+
+          floorNumber: Number(
+            properties.floorNumber ?? 0
+          ),
+
+          area: Number(
+            properties.area ?? 0
+          ),
+
+          polygon: [],
+
+          ulpin:
+            properties.ulpin ||
+            undefined,
+
+          spaceType:
+            properties.spaceType ||
+            undefined,
+        };
+
+        const popupHtml = `
+          <div
+            style="
+              min-width:230px;
+              font-family:Arial,sans-serif;
+              color:#111827;
+              padding:2px;
+            "
+          >
+            <div
+              style="
+                font-size:17px;
+                font-weight:800;
+                margin-bottom:9px;
+              "
+            >
+              Unit ${
+                unit.unitNumber || "—"
+              }
+            </div>
+
+            <div
+              style="
+                font-size:13px;
+                line-height:1.8;
+              "
+            >
+              <div>
+                <strong>Floor:</strong>
+                ${unit.floorNumber}
+              </div>
+
+              <div>
+                <strong>Area:</strong>
+                ${
+                  unit.area || "—"
+                } m²
+              </div>
+
+              <div>
+                <strong>Type:</strong>
+                ${
+                  unit.spaceType ||
+                  "Unit"
+                }
+              </div>
+
+              ${
+                unit.ulpin
+                  ? `
+                    <div>
+                      <strong>ULPIN:</strong>
+                      ${unit.ulpin}
+                    </div>
+                  `
+                  : ""
+              }
+            </div>
+          </div>
+        `;
+
+        new Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: "330px",
+        })
+          .setLngLat(event.lngLat)
+          .setHTML(popupHtml)
+          .addTo(map);
+
+        onPropertySelect?.(unit);
+        onPropertyNavigate?.(unit);
+      };
+
+      map.on(
+        "click",
+        EXTRUSION_LAYER,
+        handleClick
+      );
+
+      map.on(
+        "click",
+        FOOTPRINT_LAYER,
+        handleClick
+      );
+
+      /**
+       * Hover pointer.
+       */
+      const pointerOn = () => {
+        map.getCanvas().style.cursor =
+          "pointer";
+      };
+
+      const pointerOff = () => {
+        map.getCanvas().style.cursor =
+          "";
+      };
+
+      map.on(
+        "mouseenter",
+        EXTRUSION_LAYER,
+        pointerOn
+      );
+
+      map.on(
+        "mouseenter",
+        FOOTPRINT_LAYER,
+        pointerOn
+      );
+
+      map.on(
+        "mouseleave",
+        EXTRUSION_LAYER,
+        pointerOff
+      );
+
+      map.on(
+        "mouseleave",
+        FOOTPRINT_LAYER,
+        pointerOff
+      );
+
+      /**
+       * Automatically fit once.
+       */
+      if (!didFitRef.current) {
+        const bounds =
+          getBuildingBounds();
+
+        if (bounds) {
+          map.fitBounds(bounds, {
+            padding: {
+              top: 140,
+              bottom: 190,
+              left: 240,
+              right: 240,
+            },
+
+            duration: 900,
+
+            maxZoom: 18,
+
+            pitch: is3D ? 55 : 0,
+          });
+        }
+
+        didFitRef.current = true;
+      }
+
+      return () => {
+        map.off(
+          "click",
+          EXTRUSION_LAYER,
+          handleClick
+        );
+
+        map.off(
+          "click",
+          FOOTPRINT_LAYER,
+          handleClick
+        );
+
+        map.off(
+          "mouseenter",
+          EXTRUSION_LAYER,
+          pointerOn
+        );
+
+        map.off(
+          "mouseenter",
+          FOOTPRINT_LAYER,
+          pointerOn
+        );
+
+        map.off(
+          "mouseleave",
+          EXTRUSION_LAYER,
+          pointerOff
+        );
+
+        map.off(
+          "mouseleave",
+          FOOTPRINT_LAYER,
+          pointerOff
+        );
+      };
+    };
+
+    if (map.isStyleLoaded()) {
+      return addLayers();
+    }
+
+    map.once(
+      "style.load",
+      addLayers
+    );
+
+    return () => {
+      map.off(
+        "style.load",
+        addLayers
+      );
+    };
+  }, [
+    mapReady,
+    building,
+    hasValidGeoreference,
+    onPropertyNavigate,
+    onPropertySelect,
+  ]);
+
+  /**
+   * Reset automatic fit for a new building.
+   */
+  useEffect(() => {
+    didFitRef.current = false;
+  }, [building?.id]);
+
+  /**
+   * ---------------------------------------------------------
+   * ZOOM
+   * ---------------------------------------------------------
+   */
+  const zoomIn = () => {
+    mapRef.current?.zoomIn({
+      duration: 300,
+    });
+  };
+
+  const zoomOut = () => {
+    mapRef.current?.zoomOut({
+      duration: 300,
+    });
+  };
+
+  /**
+   * ---------------------------------------------------------
+   * 2D / 3D
+   * ---------------------------------------------------------
+   */
+  const toggle3D = () => {
+    const map = mapRef.current;
+
+    if (!map) {
+      return;
+    }
+
+    setIs3D((previous) => {
+      const next = !previous;
+
+      map.easeTo({
+        pitch: next ? 55 : 0,
+        duration: 700,
+      });
+
+      return next;
+    });
+  };
+
+  /**
+   * ---------------------------------------------------------
+   * ROTATE
+   * ---------------------------------------------------------
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map || !rotating) {
+      return;
+    }
+
+    let animationFrame = 0;
+
+    const rotate = () => {
+      map.setBearing(
+        map.getBearing() + 0.15
+      );
+
+      animationFrame =
+        requestAnimationFrame(rotate);
+    };
+
+    animationFrame =
+      requestAnimationFrame(rotate);
+
+    return () => {
+      cancelAnimationFrame(
+        animationFrame
+      );
+    };
+  }, [rotating]);
+
+  /**
+   * ---------------------------------------------------------
+   * UNIT COUNT
+   * ---------------------------------------------------------
+   */
+  const buildingUnitCount =
+    building?.floors?.reduce(
+      (total, floor) =>
+        total +
+        (floor.units?.length ?? 0),
+      0
+    ) ?? 0;
+
+  /**
+   * ---------------------------------------------------------
+   * WAITING STATE
+   * ---------------------------------------------------------
+   */
+  if (!hasValidGeoreference) {
+    return (
       <div
         style={{
-          maxWidth: "520px",
+          position: "relative",
+          width: "100%",
+          height: "78vh",
+          minHeight: "650px",
+          maxHeight: "920px",
+
+          borderRadius: 18,
+          overflow: "hidden",
+
+          background:
+            "linear-gradient(135deg,#e0f2fe,#f8fafc)",
+
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <div
           style={{
-            fontSize: "42px",
-            marginBottom: "14px",
-          }}
-        >
-          📍
-        </div>
+            textAlign: "center",
+            padding: 26,
 
-        <div
-          style={{
-            fontSize: "19px",
-            fontWeight: 800,
-            marginBottom: "10px",
-          }}
-        >
-          Building Georeference Required
-        </div>
+            background:
+              "rgba(255,255,255,0.94)",
 
-        <div
-          style={{
-            fontSize: "13px",
-            lineHeight: 1.7,
-            color: "#94a3b8",
+            borderRadius: 16,
+
+            boxShadow:
+              "0 10px 35px rgba(0,0,0,0.08)",
           }}
         >
-          The uploaded cadastral file does not
-          contain valid latitude and longitude
-          coordinates.
-          <br />
-          <br />
-          The GIS map will not use artificial
-          fallback coordinates.
-          <br />
-          <br />
-          Add a valid{" "}
-          <strong
+          <div
             style={{
-              color: "#ffffff",
+              fontSize: 17,
+              fontWeight: 800,
+              color: "#111827",
             }}
           >
-            georeference.latitude
-          </strong>{" "}
-          and{" "}
-          <strong
+            Waiting for cadastral data
+          </div>
+
+          <div
             style={{
-              color: "#ffffff",
+              marginTop: 7,
+              fontSize: 13,
+              color: "#6b7280",
             }}
           >
-            georeference.longitude
-          </strong>{" "}
-          to the uploaded GeoJSON.
+            Upload a cadastral file with
+            valid GNSS coordinates.
+          </div>
         </div>
       </div>
-    </section>
-  );
-}
-
-/* ============================================================
-   INNER LEAFLET COMPONENT
-   ============================================================ */
-
-/**
- * This component receives latitude/longitude as REQUIRED
- * numbers.
- *
- * That means TypeScript will NEVER see:
- *
- *      number | undefined
- *
- * inside the Leaflet code.
- */
-function RealWorldMapWithCoordinates({
-  building,
-  latitude,
-  longitude,
-  approvalStatus = "APPROVED",
-  onPropertySelect,
-  onPropertyNavigate,
-}: {
-  building?: ParsedBuilding | null;
-
-  latitude: number;
-
-  longitude: number;
-
-  approvalStatus?:
-    | "PENDING_REVIEW"
-    | "APPROVED"
-    | "REJECTED";
-
-  onPropertySelect?: (
-    property: Property2D
-  ) => void;
-
-  onPropertyNavigate?: (
-    property: Property2D
-  ) => void;
-}) {
-  /* ==========================================================
-     REFS
-     ========================================================== */
-
-  const mapContainerRef =
-    useRef<HTMLDivElement | null>(
-      null
     );
-
-  const mapInstanceRef =
-    useRef<any>(null);
-
-  const layerGroupRef =
-    useRef<any>(null);
-
-  /* ==========================================================
-     STATE
-     ========================================================== */
-
-  const [mapReady, setMapReady] =
-    useState(false);
-
-  /* ==========================================================
-     INITIALIZE LEAFLET
-     ========================================================== */
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function initLeaflet() {
-      if (
-        !mapContainerRef.current ||
-        mapInstanceRef.current
-      ) {
-        return;
-      }
-
-      /* ------------------------------------------------------
-         LOAD LEAFLET CSS
-         ------------------------------------------------------ */
-
-      if (
-        !document.getElementById(
-          "leaflet-css-cdn"
-        )
-      ) {
-        const link =
-          document.createElement(
-            "link"
-          );
-
-        link.id =
-          "leaflet-css-cdn";
-
-        link.rel =
-          "stylesheet";
-
-        link.href =
-          "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-
-        document.head.appendChild(
-          link
-        );
-      }
-
-      /* ------------------------------------------------------
-         POPUP STYLING
-         ------------------------------------------------------ */
-
-      if (
-        !document.getElementById(
-          "leaflet-popup-override-style"
-        )
-      ) {
-        const style =
-          document.createElement(
-            "style"
-          );
-
-        style.id =
-          "leaflet-popup-override-style";
-
-        style.innerHTML = `
-          .leaflet-pane.leaflet-popup-pane {
-            z-index: 10000 !important;
-          }
-
-          .leaflet-popup-content-wrapper {
-            background: #ffffff !important;
-            color: #0f172a !important;
-            border-radius: 10px !important;
-            box-shadow:
-              0 10px 25px rgba(0, 0, 0, 0.4) !important;
-            padding: 2px !important;
-          }
-
-          .leaflet-popup-content {
-            margin: 12px 14px !important;
-            line-height: 1.4 !important;
-          }
-
-          .leaflet-popup-tip {
-            background: #ffffff !important;
-          }
-        `;
-
-        document.head.appendChild(
-          style
-        );
-      }
-
-      /* ------------------------------------------------------
-         IMPORT LEAFLET
-         ------------------------------------------------------ */
-
-      const L =
-        await import("leaflet");
-
-      if (
-        !isMounted ||
-        !mapContainerRef.current
-      ) {
-        return;
-      }
-
-      /* ------------------------------------------------------
-         CREATE MAP
-         ------------------------------------------------------ */
-
-      const map = L.map(
-        mapContainerRef.current,
-        {
-          center: [
-            latitude,
-            longitude,
-          ],
-
-          zoom: building ? 19 : 15,
-
-          zoomControl: true,
-        }
-      );
-
-      /* ------------------------------------------------------
-         OPEN STREET MAP
-         ------------------------------------------------------ */
-
-      L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          maxZoom: 20,
-
-          attribution:
-            '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }
-      ).addTo(map);
-
-      /* ------------------------------------------------------
-         BUILDING LAYER GROUP
-         ------------------------------------------------------ */
-
-      const layerGroup =
-        L.layerGroup().addTo(map);
-
-      layerGroupRef.current =
-        layerGroup;
-
-      mapInstanceRef.current =
-        map;
-
-      setMapReady(true);
-
-      /* ------------------------------------------------------
-         FIX INITIAL SIZE
-         ------------------------------------------------------ */
-
-      setTimeout(() => {
-        mapInstanceRef.current?.invalidateSize();
-      }, 200);
-    }
-
-    initLeaflet();
-
-    /* ========================================================
-       CLEANUP
-       ======================================================== */
-
-    return () => {
-      isMounted = false;
-
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.closePopup();
-
-          mapInstanceRef.current.off();
-
-          mapInstanceRef.current.remove();
-        } catch {
-          // Safe cleanup.
-        }
-
-        mapInstanceRef.current =
-          null;
-
-        layerGroupRef.current =
-          null;
-      }
-
-      setMapReady(false);
-    };
-  }, []);
-
-  /* ==========================================================
-     UPDATE MAP CENTER
-     ========================================================== */
-
-  useEffect(() => {
-    if (
-      !mapInstanceRef.current ||
-      !mapReady
-    ) {
-      return;
-    }
-
-    mapInstanceRef.current.setView(
-      [
-        latitude,
-        longitude,
-      ],
-      building ? 19 : 15
-    );
-
-    setTimeout(() => {
-      mapInstanceRef.current?.invalidateSize();
-    }, 100);
-  }, [
-    latitude,
-    longitude,
-    building,
-    mapReady,
-  ]);
-
-  /* ==========================================================
-     RENDER BUILDING GEOMETRY
-     ========================================================== */
-
-  useEffect(() => {
-    if (
-      !mapReady ||
-      !mapInstanceRef.current ||
-      !layerGroupRef.current
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function updateOverlay() {
-      const L =
-        await import("leaflet");
-
-      if (cancelled) {
-        return;
-      }
-
-      const map =
-        mapInstanceRef.current;
-
-      const layerGroup =
-        layerGroupRef.current;
-
-      if (
-        !map ||
-        !layerGroup
-      ) {
-        return;
-      }
-
-      /* ------------------------------------------------------
-         REMOVE OLD GEOMETRY
-         ------------------------------------------------------ */
-
-      try {
-        map.closePopup();
-      } catch {
-        // Safe.
-      }
-
-      layerGroup.clearLayers();
-
-      /* ------------------------------------------------------
-         GNSS / CORS ANCHOR MARKER
-         ------------------------------------------------------ */
-
-      const markerEl =
-        L.divIcon({
-          className:
-            "custom-cors-marker",
-
-          html: `
-            <div
-              style="
-                width:24px;
-                height:24px;
-                border-radius:50%;
-                background:#2563eb;
-                border:3px solid #ffffff;
-                box-shadow:
-                  0 0 15px rgba(37,99,235,0.8);
-              "
-            ></div>
-          `,
-
-          iconSize: [
-            24,
-            24,
-          ],
-
-          iconAnchor: [
-            12,
-            12,
-          ],
-        });
-
-      const anchorMarker =
-        L.marker(
-          [
-            latitude,
-            longitude,
-          ],
-          {
-            icon: markerEl,
-          }
-        ).bindPopup(`
-          <div
-            style="
-              font-family:system-ui,sans-serif;
-              padding:4px;
-            "
-          >
-            <strong
-              style="
-                font-size:13px;
-                color:#0f172a;
-              "
-            >
-              📍 Building Georeference
-            </strong>
-
-            <br/>
-
-            <span
-              style="
-                font-size:11px;
-                color:#475569;
-              "
-            >
-              Latitude:
-              ${latitude.toFixed(6)}°
-
-              <br/>
-
-              Longitude:
-              ${longitude.toFixed(6)}°
-            </span>
-
-            <br/>
-
-            <span
-              style="
-                font-size:10px;
-                color:#10b981;
-              "
-            >
-              Source:
-              Uploaded GeoJSON
-            </span>
-          </div>
-        `);
-
-      layerGroup.addLayer(
-        anchorMarker
-      );
-
-      /* ------------------------------------------------------
-         NO BUILDING
-         ------------------------------------------------------ */
-
-      if (
-        !building ||
-        !building.floors ||
-        building.floors.length === 0
-      ) {
-        return;
-      }
-
-      /* ------------------------------------------------------
-         BUILDING BOUNDS
-         ------------------------------------------------------ */
-
-      const bounds =
-        L.latLngBounds([
-          [
-            latitude,
-            longitude,
-          ],
-        ]);
-
-      /* ------------------------------------------------------
-         LOOP THROUGH FLOORS
-         ------------------------------------------------------ */
-
-      building.floors.forEach(
-        (floor) => {
-          /* --------------------------------------------------
-             LOOP THROUGH UNITS
-             -------------------------------------------------- */
-
-          (floor.units || []).forEach(
-            (unit) => {
-              /* ------------------------------------------------
-                 VALID POLYGON
-                 ------------------------------------------------ */
-
-              if (
-                !unit.polygon ||
-                unit.polygon.length < 3
-              ) {
-                return;
-              }
-
-              /* ------------------------------------------------
-                 LOCAL METRES → WGS84
-                 ------------------------------------------------
-                 
-                 IMPORTANT:
-                 
-                 We deliberately do NOT use:
-                 
-                   abs(x) <= 180
-                 
-                 or:
-                 
-                   abs(y) <= 90
-                 
-                 to detect geographic coordinates.
-                 
-                 That approach can incorrectly interpret
-                 local building coordinates as longitude/latitude.
-                 ------------------------------------------------ */
-
-              const latLngs =
-                unit.polygon.map(
-                  (point) => {
-                    const x =
-                      Number(
-                        point?.x
-                      );
-
-                    const y =
-                      Number(
-                        point?.y
-                      );
-
-                    /* ------------------------------------------
-                       INVALID POINT
-                       ------------------------------------------ */
-
-                    if (
-                      !Number.isFinite(
-                        x
-                      ) ||
-                      !Number.isFinite(
-                        y
-                      )
-                    ) {
-                      return [
-                        latitude,
-                        longitude,
-                      ] as [
-                        number,
-                        number
-                      ];
-                    }
-
-                    /* ------------------------------------------
-                       CONVERT LOCAL METRES
-                       ------------------------------------------ */
-
-                    return localMetersToLatLng(
-                      x,
-                      y,
-                      latitude,
-                      longitude
-                    );
-                  }
-                );
-
-              /* ------------------------------------------------
-                 EXTEND BUILDING BOUNDS
-                 ------------------------------------------------ */
-
-              latLngs.forEach(
-                (coordinate) => {
-                  bounds.extend(
-                    coordinate
-                  );
-                }
-              );
-
-              /* ------------------------------------------------
-                 SPACE TYPE
-                 ------------------------------------------------ */
-
-              const spaceType =
-                (
-                  unit.spaceType ||
-                  ""
-                ).toLowerCase();
-
-              let fillColor =
-                "#3b82f6";
-
-              if (
-                spaceType.includes(
-                  "stair"
-                )
-              ) {
-                fillColor =
-                  "#f97316";
-              } else if (
-                spaceType.includes(
-                  "lift"
-                ) ||
-                spaceType.includes(
-                  "elevator"
-                )
-              ) {
-                fillColor =
-                  "#06b6d4";
-              } else if (
-                spaceType.includes(
-                  "corridor"
-                ) ||
-                spaceType.includes(
-                  "passage"
-                )
-              ) {
-                fillColor =
-                  "#a855f7";
-              }
-
-              /* ------------------------------------------------
-                 DRAW POLYGON
-                 ------------------------------------------------ */
-
-              const polygon =
-                L.polygon(
-                  latLngs,
-                  {
-                    color:
-                      "#0f172a",
-
-                    weight: 2,
-
-                    fillColor,
-
-                    fillOpacity: 0.75,
-                  }
-                );
-
-              /* ------------------------------------------------
-                 POPUP
-                 ------------------------------------------------ */
-
-              const popupContainer =
-                document.createElement(
-                  "div"
-                );
-
-              popupContainer.style.fontFamily =
-                "system-ui, sans-serif";
-
-              popupContainer.style.minWidth =
-                "180px";
-
-              popupContainer.innerHTML = `
-                <div
-                  style="
-                    font-size:14px;
-                    font-weight:800;
-                    color:#0f172a;
-                    margin-bottom:4px;
-                  "
-                >
-                  Unit
-                  ${
-                    unit.unitNumber ||
-                    unit.id
-                  }
-                </div>
-
-                <div
-                  style="
-                    font-size:12px;
-                    color:#475569;
-                    margin-bottom:2px;
-                  "
-                >
-                  Floor:
-                  ${floor.floorNumber}
-                </div>
-
-                <div
-                  style="
-                    font-size:12px;
-                    color:#475569;
-                    margin-bottom:8px;
-                  "
-                >
-                  Area:
-                  ${unit.area || 0} m²
-                </div>
-
-                <button
-                  id="inspect-btn-${unit.id}"
-                  style="
-                    width:100%;
-                    padding:6px 10px;
-                    background:#2563eb;
-                    color:#ffffff;
-                    border:none;
-                    border-radius:6px;
-                    font-weight:700;
-                    font-size:11px;
-                    cursor:pointer;
-                  "
-                >
-                  Inspect 3D Volume →
-                </button>
-              `;
-
-              /* ------------------------------------------------
-                 INSPECT BUTTON
-                 ------------------------------------------------ */
-
-              const inspectButton =
-                popupContainer.querySelector(
-                  `#inspect-btn-${unit.id}`
-                );
-
-              inspectButton?.addEventListener(
-                "click",
-                () => {
-                  onPropertySelect?.(
-                    unit
-                  );
-
-                  onPropertyNavigate?.(
-                    unit
-                  );
-                }
-              );
-
-              /* ------------------------------------------------
-                 POPUP
-                 ------------------------------------------------ */
-
-              polygon.bindPopup(
-                popupContainer
-              );
-
-              /* ------------------------------------------------
-                 SELECT PROPERTY
-                 ------------------------------------------------ */
-
-              polygon.on(
-                "click",
-                () => {
-                  onPropertySelect?.(
-                    unit
-                  );
-                }
-              );
-
-              /* ------------------------------------------------
-                 ADD TO MAP
-                 ------------------------------------------------ */
-
-              layerGroup.addLayer(
-                polygon
-              );
-            }
-          );
-        }
-      );
-
-      /* ------------------------------------------------------
-         FIT BUILDING
-         ------------------------------------------------------ */
-
-      if (bounds.isValid()) {
-        map.fitBounds(
-          bounds,
-          {
-            padding: [
-              50,
-              50,
-            ],
-
-            maxZoom: 19,
-          }
-        );
-      }
-    }
-
-    updateOverlay();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    mapReady,
-    building,
-    latitude,
-    longitude,
-    onPropertySelect,
-    onPropertyNavigate,
-  ]);
-
-  /* ==========================================================
-     UI
-     ========================================================== */
-
+  }
+
+  /**
+   * ---------------------------------------------------------
+   * MAIN MAP
+   * ---------------------------------------------------------
+   */
   return (
-    <section
+    <div
       style={{
         position: "relative",
-
         width: "100%",
 
-        height: "100%",
+        /**
+         * Large viewport.
+         */
+        height: "78vh",
 
-        minHeight: "500px",
-
-        borderRadius: "14px",
+        minHeight: "650px",
+        maxHeight: "920px",
 
         overflow: "hidden",
 
-        border:
-          "1px solid #1e293b",
+        borderRadius: 18,
 
-        background:
-          "#020617",
+        background: "#dbeafe",
+
+        boxShadow:
+          "0 12px 35px rgba(15,23,42,0.10)",
       }}
     >
-      {/* ======================================================
-          HEADER
-          ====================================================== */}
+      <div
+        ref={containerRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+        }}
+      />
 
+      {/* -------------------------------------------------- */}
+      {/* BUILDING INFO */}
+      {/* -------------------------------------------------- */}
       <div
         style={{
           position: "absolute",
+          top: 18,
+          left: 18,
+          zIndex: 10,
 
-          top: "16px",
-
-          left: "16px",
-
-          zIndex: 400,
+          maxWidth: 320,
 
           background:
-            "rgba(15, 23, 42, 0.9)",
+            "rgba(255,255,255,0.95)",
 
-          backdropFilter:
-            "blur(8px)",
-
-          border:
-            "1px solid #334155",
+          borderRadius: 14,
 
           padding:
-            "12px 18px",
+            "13px 16px",
 
-          borderRadius: "10px",
+          boxShadow:
+            "0 8px 24px rgba(0,0,0,0.13)",
 
-          color: "#ffffff",
+          backdropFilter:
+            "blur(12px)",
 
-          pointerEvents:
-            "none",
+          border:
+            "1px solid rgba(255,255,255,0.7)",
         }}
       >
-        {/* TITLE */}
-
         <div
           style={{
-            fontSize: "14px",
-
+            fontSize: 16,
             fontWeight: 800,
-          }}
-        >
-          🌐 Real-World 3D GIS
-          Projection Map
-        </div>
-
-        {/* BUILDING */}
-
-        <div
-          style={{
-            fontSize: "11px",
-
-            color: "#94a3b8",
-
-            marginTop: "3px",
+            color: "#111827",
           }}
         >
           {building?.name ||
-            "Uploaded Building"}
+            "Cadastral Building"}
         </div>
-
-        {/* GNSS */}
 
         <div
           style={{
-            fontSize: "11px",
-
-            color: "#94a3b8",
-
-            marginTop: "3px",
+            marginTop: 4,
+            fontSize: 12,
+            color: "#64748b",
           }}
         >
-          GNSS Reference:{" "}
-          {latitude.toFixed(6)}
-          ° N,{" "}
-          {longitude.toFixed(6)}
-          ° E
+          {buildingUnitCount} accessible
+          units
         </div>
 
-        {/* SOURCE */}
+        {building?.address && (
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 11,
+              color: "#94a3b8",
+            }}
+          >
+            {building.address}
+          </div>
+        )}
 
-        <div
-          style={{
-            fontSize: "10px",
+        {approvalStatus && (
+          <div
+            style={{
+              marginTop: 8,
 
-            color: "#10b981",
+              display:
+                "inline-flex",
 
-            marginTop: "4px",
-          }}
-        >
-          ● Uploaded GeoJSON
-          coordinates
-        </div>
+              alignItems:
+                "center",
+
+              padding:
+                "4px 9px",
+
+              borderRadius: 999,
+
+              background:
+                "#ecfdf5",
+
+              color:
+                "#047857",
+
+              fontSize: 11,
+              fontWeight: 800,
+            }}
+          >
+            {approvalStatus}
+          </div>
+        )}
       </div>
 
-      {/* ======================================================
-          STATUS + LEGEND
-          ====================================================== */}
-
+      {/* -------------------------------------------------- */}
+      {/* MAP CONTROLS */}
+      {/* -------------------------------------------------- */}
       <div
         style={{
           position: "absolute",
 
-          bottom: "16px",
+          right: 18,
 
-          left: "16px",
+          /**
+           * IMPORTANT:
+           * Kept significantly above the bottom edge
+           * so the rotate/3D controls are never clipped.
+           */
+          bottom: 125,
 
-          zIndex: 400,
+          zIndex: 30,
 
-          background:
-            "rgba(15, 23, 42, 0.9)",
+          display: "flex",
 
-          backdropFilter:
-            "blur(8px)",
+          flexDirection: "column",
 
-          padding:
-            "10px 14px",
+          gap: 8,
+        }}
+      >
+        {/* Zoom in */}
+        <button
+          type="button"
+          onClick={zoomIn}
+          title="Zoom in"
+          style={{
+            width: 46,
+            height: 46,
 
-          borderRadius: "10px",
+            flexShrink: 0,
 
-          border:
-            "1px solid #334155",
+            border: "none",
+            borderRadius: 11,
+
+            background: "#ffffff",
+
+            boxShadow:
+              "0 5px 16px rgba(0,0,0,0.16)",
+
+            fontSize: 25,
+            fontWeight: 700,
+
+            cursor: "pointer",
+
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          +
+        </button>
+
+        {/* Zoom out */}
+        <button
+          type="button"
+          onClick={zoomOut}
+          title="Zoom out"
+          style={{
+            width: 46,
+            height: 46,
+
+            flexShrink: 0,
+
+            border: "none",
+            borderRadius: 11,
+
+            background: "#ffffff",
+
+            boxShadow:
+              "0 5px 16px rgba(0,0,0,0.16)",
+
+            fontSize: 25,
+            fontWeight: 700,
+
+            cursor: "pointer",
+
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          −
+        </button>
+
+        {/* 2D / 3D */}
+        <button
+          type="button"
+          onClick={toggle3D}
+          title="Toggle 2D / 3D"
+          style={{
+            width: 46,
+            height: 46,
+
+            flexShrink: 0,
+
+            border: "none",
+            borderRadius: 11,
+
+            background: is3D
+              ? "#111827"
+              : "#ffffff",
+
+            color: is3D
+              ? "#ffffff"
+              : "#111827",
+
+            boxShadow:
+              "0 5px 16px rgba(0,0,0,0.16)",
+
+            fontSize: 13,
+            fontWeight: 800,
+
+            cursor: "pointer",
+
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          3D
+        </button>
+
+        {/* Rotate */}
+        <button
+          type="button"
+          onClick={() =>
+            setRotating(
+              (value) => !value
+            )
+          }
+          title={
+            rotating
+              ? "Stop rotation"
+              : "Rotate map"
+          }
+          style={{
+            width: 46,
+            height: 46,
+
+            flexShrink: 0,
+
+            border: "none",
+            borderRadius: 11,
+
+            background: rotating
+              ? "#2563eb"
+              : "#ffffff",
+
+            color: rotating
+              ? "#ffffff"
+              : "#111827",
+
+            boxShadow:
+              "0 5px 16px rgba(0,0,0,0.16)",
+
+            fontSize: 21,
+
+            cursor: "pointer",
+
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          ↻
+        </button>
+
+        {/* Fit building */}
+        <button
+          type="button"
+          onClick={() =>
+            fitBuilding(700)
+          }
+          title="Show complete building"
+          style={{
+            width: 46,
+            height: 46,
+
+            flexShrink: 0,
+
+            border: "none",
+            borderRadius: 11,
+
+            background: "#ffffff",
+
+            boxShadow:
+              "0 5px 16px rgba(0,0,0,0.16)",
+
+            fontSize: 18,
+
+            cursor: "pointer",
+
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          ⌂
+        </button>
+      </div>
+
+      {/* -------------------------------------------------- */}
+      {/* LEGEND */}
+      {/* -------------------------------------------------- */}
+      <div
+        style={{
+          position: "absolute",
+
+          left: 18,
+
+          bottom: 18,
+
+          zIndex: 10,
 
           display: "flex",
 
           alignItems: "center",
 
-          gap: "12px",
-
-          fontSize: "11px",
-
-          color: "#ffffff",
-
-          pointerEvents:
-            "none",
-
           flexWrap: "wrap",
+
+          gap: 10,
+
+          padding:
+            "10px 13px",
+
+          background:
+            "rgba(255,255,255,0.95)",
+
+          borderRadius: 11,
+
+          boxShadow:
+            "0 5px 18px rgba(0,0,0,0.12)",
+
+          fontSize: 11,
+
+          color: "#374151",
+
+          backdropFilter:
+            "blur(8px)",
         }}
       >
-        {/* STATUS LABEL */}
-
         <span
           style={{
-            color: "#94a3b8",
-          }}
-        >
-          Status:
-        </span>
-
-        {/* STATUS */}
-
-        <span
-          style={{
-            color:
-              approvalStatus ===
-              "APPROVED"
-                ? "#10b981"
-                : approvalStatus ===
-                    "REJECTED"
-                  ? "#ef4444"
-                  : "#f59e0b",
-
-            fontWeight: 700,
-          }}
-        >
-          ● {approvalStatus}
-        </span>
-
-        {/* DIVIDER */}
-
-        <div
-          style={{
-            height: "12px",
-
-            width: "1px",
+            width: 12,
+            height: 12,
+            borderRadius: 3,
 
             background:
-              "#334155",
+              "#22c55e",
+
+            display:
+              "inline-block",
           }}
         />
 
-        {/* STAIRS */}
+        Units
 
         <span
           style={{
-            color: "#f97316",
+            width: 12,
+            height: 12,
+            borderRadius: 3,
 
-            fontWeight: 600,
+            background:
+              "#f97316",
+
+            display:
+              "inline-block",
           }}
-        >
-          ■ Stairs
-        </span>
+        />
 
-        {/* ELEVATOR */}
+        Stairs
 
         <span
           style={{
-            color: "#06b6d4",
+            width: 12,
+            height: 12,
+            borderRadius: 3,
 
-            fontWeight: 600,
+            background:
+              "#8b5cf6",
+
+            display:
+              "inline-block",
           }}
-        >
-          ■ Elevator
-        </span>
+        />
 
-        {/* PASSAGE */}
-
-        <span
-          style={{
-            color: "#a855f7",
-
-            fontWeight: 600,
-          }}
-        >
-          ■ Passage
-        </span>
-
-        {/* UNITS */}
-
-        <span
-          style={{
-            color: "#3b82f6",
-
-            fontWeight: 600,
-          }}
-        >
-          ■ Units
-        </span>
+        Lift
       </div>
-
-      {/* ======================================================
-          LEAFLET MAP
-          ====================================================== */}
-
-      <div
-        ref={mapContainerRef}
-        style={{
-          position: "absolute",
-
-          inset: 0,
-
-          width: "100%",
-
-          height: "100%",
-
-          zIndex: 1,
-        }}
-      />
-    </section>
-  );
-}
-
-/* ============================================================
-   MAIN COMPONENT
-   ============================================================ */
-
-export default function RealWorldMapViewer({
-  building = null,
-  approvalStatus = "APPROVED",
-  onPropertySelect,
-  onPropertyNavigate,
-}: RealWorldMapViewerProps) {
-  /**
-   * ----------------------------------------------------------
-   * GET GEOREFERENCE
-   * ----------------------------------------------------------
-   */
-
-  const georeference =
-    getBuildingGeoreference(
-      building
-    );
-
-  /**
-   * ----------------------------------------------------------
-   * NO VALID GEOREFERENCE
-   * ----------------------------------------------------------
-   *
-   * This is intentionally rendered before the inner Leaflet
-   * component.
-   *
-   * This allows the Leaflet component to receive guaranteed
-   * numbers and completely eliminates:
-   *
-   *   number | undefined
-   *
-   * TypeScript errors.
-   * ----------------------------------------------------------
-   */
-
-  if (!georeference) {
-    return (
-      <MissingGeoreferenceView />
-    );
-  }
-
-  /**
-   * ----------------------------------------------------------
-   * GUARANTEED NUMBERS
-   * ----------------------------------------------------------
-   */
-
-  const latitude: number =
-    georeference.latitude;
-
-  const longitude: number =
-    georeference.longitude;
-
-  /**
-   * ----------------------------------------------------------
-   * LEAFLET MAP
-   * ----------------------------------------------------------
-   */
-
-  return (
-    <RealWorldMapWithCoordinates
-      building={building}
-      latitude={latitude}
-      longitude={longitude}
-      approvalStatus={
-        approvalStatus
-      }
-      onPropertySelect={
-        onPropertySelect
-      }
-      onPropertyNavigate={
-        onPropertyNavigate
-      }
-    />
+    </div>
   );
 }
