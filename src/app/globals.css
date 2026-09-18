@@ -1,1 +1,83 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Primary Greens */
+    --forest-950: #081a12;
+    --forest-900: #0f2d21;
+    --forest-850: #14382a;
+    --forest-800: #1b4332;
+    --forest-700: #255943;
+    --forest-600: #2d6a4f;
+
+    /* Secondary / Sage Greens */
+    --sage-500: #40916c;
+    --sage-400: #52b788;
+    --sage-300: #74c69d;
+    --sage-200: #b7e4c7;
+    --sage-100: #d8f3dc;
+
+    /* Cream & Earthy Off-Whites */
+    --cream-50: #fdfbf7;
+    --cream-100: #f8f5ee;
+    --cream-200: #f0ebe1;
+    --cream-300: #e4dcd0;
+
+    /* Earth & Gold Accents */
+    --gold-500: #c5a059;
+    --gold-600: #b8860b;
+    --gold-700: #8c6607;
+    --gold-100: #f9f5e8;
+
+    /* Neutral Dark Surfaces (for GIS Canvas / Dark Shell elements) */
+    --surface-dark-950: #060b09;
+    --surface-dark-900: #0b1511;
+    --surface-dark-800: #12201a;
+    --surface-dark-700: #1b2e26;
+    --border-dark: #1f3a2f;
+
+    /* Neutral Light Surfaces */
+    --surface-light-100: #ffffff;
+    --surface-light-200: #fdfbf7;
+    --surface-light-300: #f3efe6;
+    --border-light: #e2dad0;
+
+    /* Typography / Semantic colors */
+    --text-primary-dark: #f8faf8;
+    --text-secondary-dark: #a8c3b5;
+    --text-muted-dark: #6c8a7b;
+
+    --text-primary-light: #162a21;
+    --text-secondary-light: #3d5a4c;
+    --text-muted-light: #6b887a;
+
+    /* Status Colors */
+    --status-success-bg: #133a27;
+    --status-success-text: #6ee7b7;
+    --status-warning-bg: #422006;
+    --status-warning-text: #fde047;
+    --status-danger-bg: #450a0a;
+    --status-danger-text: #fca5a5;
+    --status-info-bg: #0c2a4a;
+    --status-info-text: #93c5fd;
+  }
+}
+
+/* Custom Scrollbar for GIS panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-dark-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--forest-800);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--forest-600);
+}
