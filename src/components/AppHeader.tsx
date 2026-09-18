@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 
 interface AppHeaderProps {
   roleMode: "PUBLIC_VIEWER" | "SURVEYOR" | "UPLOADER";
@@ -53,25 +54,21 @@ export function AppHeader({
         )}
 
         {/* Official Ministry Asset Container Slot */}
-        <div className="hidden md:flex items-center gap-2.5 border-r border-[#1f3a2f] pr-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#14382a] border border-[#255943] text-amber-400 font-serif font-bold text-xs shadow-inner">
-            GOI
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-semibold text-[#a8c3b5] uppercase tracking-wider leading-tight">
-              Ministry of Rural Development
-            </span>
-            <span className="text-[9px] font-medium text-[#6c8a7b] leading-tight">
-              Dept. of Land Resources
-            </span>
-          </div>
+        <div className="hidden md:flex items-center gap-3 border-r border-[#1f3a2f] pr-4">
+          <img
+            src="/mord-logo.png"
+            alt="Ministry of Rural Development - Government of India"
+            className="h-9 w-auto max-w-[160px] object-contain bg-white px-2 py-0.5 rounded-md shadow-sm"
+          />
         </div>
 
-        {/* Center / Primary Branding */}
+        {/* Center / Primary BhuVista Branding */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#2d6a4f] to-[#1b4332] text-white font-bold text-base shadow-sm border border-[#52b788]/30">
-            BV
-          </div>
+          <img
+            src="/bhuvista-logo.png"
+            alt="BhuVista Logo"
+            className="h-9 w-auto max-w-[140px] object-contain rounded-md shadow-sm"
+          />
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="text-lg font-extrabold tracking-wide text-white font-sans">
@@ -82,7 +79,7 @@ export function AppHeader({
               </span>
             </div>
             <span className="text-[10px] font-semibold tracking-wider text-[#a8c3b5] uppercase">
-              3D Land Intelligence Platform
+              3D LAND INTELLIGENCE PLATFORM
             </span>
           </div>
         </div>
@@ -190,7 +187,7 @@ export function AppHeader({
             className="flex h-9 items-center gap-2 rounded-lg border border-[#1f3a2f] bg-[#14382a] px-2.5 text-xs font-medium text-white hover:bg-[#1b4332] transition cursor-pointer"
           >
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2d6a4f] text-[10px] font-bold">
-              {userRole === "SURVEYOR" ? "SV" : "VW"}
+              {userRole === "SURVEYOR" ? "SV" : "PV"}
             </div>
             <span className="hidden sm:inline-block font-semibold">
               {userRole === "SURVEYOR" ? "Surveyor" : "Public Viewer"}
@@ -200,9 +197,9 @@ export function AppHeader({
           {showProfile && (
             <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[#1f3a2f] bg-[#0f2d21] p-3 text-xs text-white shadow-xl z-50">
               <div className="border-b border-[#1f3a2f] pb-2">
-                <p className="font-bold text-white">BhuVista Account</p>
+                <p className="font-bold text-white">BhuVista Session</p>
                 <p className="text-[10px] text-[#a8c3b5]">
-                  Role: {userRole || "PUBLIC"}
+                  Role: {userRole || "PUBLIC_VIEWER"}
                 </p>
               </div>
               <div className="pt-2 space-y-1">
@@ -210,7 +207,7 @@ export function AppHeader({
                   href="/login"
                   className="block rounded-lg px-2 py-1.5 text-[#a8c3b5] hover:bg-[#14382a] hover:text-white"
                 >
-                  Switch Account
+                  Sign In / Switch Role
                 </a>
               </div>
             </div>

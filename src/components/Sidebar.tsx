@@ -32,8 +32,8 @@ export function Sidebar({
       title: "HOME",
       items: [
         {
-          id: "dashboard",
-          label: "Dashboard",
+          id: "home",
+          label: "Home",
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -168,16 +168,16 @@ export function Sidebar({
 
             <div className="space-y-1">
               {group.items.map((item) => {
-                const isActive = activeSection === item.id;
+                const isActive = activeSection === item.id || (activeSection === "dashboard" && item.id === "home");
                 return (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => onSelectSection && onSelectSection(item.id)}
                     title={!isOpen ? item.label : undefined}
-                    className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition cursor-pointer ${
+                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition cursor-pointer ${
                       isActive
-                        ? "bg-[#1b4332] text-white border-l-4 border-[#52b788] shadow-sm"
+                        ? "bg-[#2d6a4f] text-white shadow-md font-semibold border-l-4 border-[#52b788]"
                         : "text-[#a8c3b5] hover:bg-[#14382a] hover:text-white"
                     } ${!isOpen ? "justify-center" : ""}`}
                   >

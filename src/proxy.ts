@@ -6,12 +6,15 @@ export async function proxy(request: NextRequest) {
   const sessionToken = request.cookies.get("session")?.value;
 
   if (!sessionToken) {
+    if (request.nextUrl.pathname === "/") {
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   const user = await verifySession(sessionToken);
 
-  if (!user) {
+  if (!user && request.nextUrl.pathname !== "/") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -20,6 +23,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|login|signup|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api|login|signup|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mjs)$).*)",
   ],
 };

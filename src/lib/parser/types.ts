@@ -27,5 +27,6 @@ export interface ParsedBuilding {
   georeference?: {
     latitude: number;
     longitude: number;
+    elevationOffset?: number;
   };
 }

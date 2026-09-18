@@ -199,8 +199,8 @@ function getSurveyFrame(
     ?.surveyedFootprintWGS84;
 
   if (
-    runtimeFrame?.coordinates?.[0]
-      ?.length >= 4
+    runtimeFrame?.coordinates?.[0] &&
+    runtimeFrame.coordinates[0].length >= 4
   ) {
     const ring =
       runtimeFrame.coordinates[0];
