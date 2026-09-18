@@ -46,9 +46,9 @@ export function PageShell({
 
         {/* MAIN CONTENT CONTAINER */}
         <main
-          className={`flex-1 transition-all duration-300 ease-in-out min-w-0 p-4 sm:p-6 lg:p-8 ${
-            isSidebarOpen ? "ml-64" : "ml-16"
-          }`}
+          className={`flex-1 transition-all duration-300 ease-in-out min-w-0 ${
+            roleMode === "PUBLIC_VIEWER" ? "p-0" : "p-4 sm:p-6 lg:p-8"
+          } ${isSidebarOpen ? "ml-[260px]" : "ml-16"}`}
         >
           {children}
         </main>
