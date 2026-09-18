@@ -134,34 +134,34 @@ export function Sidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-16 bottom-0 z-40 flex flex-col border-r border-[#1f3a2f] bg-[#0f2d21] text-white transition-all duration-300 ease-in-out ${
+      className={`fixed left-0 top-20 bottom-0 z-40 flex flex-col border-r border-[#e2dad0] bg-[#fdfbf7] text-[#162a21] transition-all duration-300 ease-in-out ${
         isOpen ? "w-64" : "w-16"
       }`}
     >
       {/* Active Role Indicator */}
-      <div className="border-b border-[#1f3a2f] p-3 bg-[#14382a]/50">
+      <div className="border-b border-[#e2dad0] p-3 bg-[#f8f5ee]">
         {isOpen ? (
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a8c3b5]">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#3d5a4c]">
               Active Portal
             </span>
-            <span className="rounded bg-[#255943] px-2 py-0.5 text-[9px] font-bold text-[#52b788]">
+            <span className="rounded bg-[#2d6a4f] px-2 py-0.5 text-[9px] font-bold text-white shadow-sm">
               {roleMode}
             </span>
           </div>
         ) : (
-          <div className="flex justify-center text-[10px] font-bold text-[#52b788]">
+          <div className="flex justify-center text-[10px] font-bold text-[#2d6a4f]">
             {roleMode.charAt(0)}
           </div>
         )}
       </div>
 
       {/* Navigation Groups */}
-      <div className="flex-1 overflow-y-auto px-2 py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {navGroups.map((group) => (
-          <div key={group.title} className="space-y-1">
+          <div key={group.title} className="space-y-1.5">
             {isOpen && (
-              <div className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#6c8a7b]">
+              <div className="px-3 text-[10px] font-black uppercase tracking-widest text-[#6b887a]">
                 {group.title}
               </div>
             )}
@@ -175,20 +175,24 @@ export function Sidebar({
                     type="button"
                     onClick={() => onSelectSection && onSelectSection(item.id)}
                     title={!isOpen ? item.label : undefined}
-                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition cursor-pointer ${
+                    className={`group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition cursor-pointer ${
                       isActive
-                        ? "bg-[#2d6a4f] text-white shadow-md font-semibold border-l-4 border-[#52b788]"
-                        : "text-[#a8c3b5] hover:bg-[#14382a] hover:text-white"
+                        ? "bg-[#2d6a4f] text-white shadow-sm font-bold"
+                        : "text-[#162a21] hover:bg-[#f3efe6] hover:text-[#2d6a4f]"
                     } ${!isOpen ? "justify-center" : ""}`}
                   >
-                    <span className="shrink-0 text-[#52b788]">{item.icon}</span>
+                    <span className={`shrink-0 ${isActive ? "text-white" : "text-[#2d6a4f]"}`}>
+                      {item.icon}
+                    </span>
 
                     {isOpen && (
                       <span className="flex-1 truncate text-left">{item.label}</span>
                     )}
 
                     {isOpen && item.badge && (
-                      <span className="rounded bg-[#2d6a4f] px-1.5 py-0.5 text-[9px] font-bold text-[#b7e4c7]">
+                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                        isActive ? "bg-white/20 text-white" : "bg-[#2d6a4f]/10 text-[#2d6a4f]"
+                      }`}>
                         {item.badge}
                       </span>
                     )}
@@ -200,12 +204,16 @@ export function Sidebar({
         ))}
       </div>
 
-      {/* Footer / System Status */}
+      {/* Sidebar Footer / Tagline */}
       {isOpen && (
-        <div className="border-t border-[#1f3a2f] p-3 text-[10px] text-[#6c8a7b]">
-          <div className="flex items-center justify-between">
-            <span>BhuVista Engine v1.0</span>
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+        <div className="border-t border-[#e2dad0] p-4 bg-[#f8f5ee] text-[#2d6a4f]">
+          <div className="flex flex-col gap-0.5 text-center">
+            <span className="text-xs font-extrabold tracking-tight text-[#162a21]">
+              Transparent Land Records
+            </span>
+            <span className="text-[10px] font-semibold text-[#3d5a4c]">
+              Stronger Rural India
+            </span>
           </div>
         </div>
       )}

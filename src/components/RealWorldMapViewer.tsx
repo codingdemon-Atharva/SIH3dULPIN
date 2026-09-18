@@ -2068,9 +2068,9 @@ export default function RealWorldMapViewer({
               }
             }
           }}
-          className="flex items-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 p-1.5 shadow-2xl backdrop-blur-md"
+          className="flex items-center rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-1.5 shadow-lg backdrop-blur-md"
         >
-          <div className="flex h-8 w-8 items-center justify-center text-[#52b788] pl-1">
+          <div className="flex h-8 w-8 items-center justify-center text-[#2d6a4f] pl-1">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -2080,11 +2080,11 @@ export default function RealWorldMapViewer({
             placeholder="Search by ULPIN, Owner Name, Survey Number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent px-2.5 py-1.5 text-xs text-white placeholder-[#6c8a7b] outline-none"
+            className="w-full bg-transparent px-2.5 py-1.5 text-xs text-[#162a21] placeholder-[#6b887a] outline-none font-medium"
           />
           <button
             type="submit"
-            className="shrink-0 rounded-lg bg-[#2d6a4f] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1b4332] transition cursor-pointer border border-[#52b788]/30"
+            className="shrink-0 rounded-xl bg-[#2d6a4f] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1b4332] transition cursor-pointer shadow-sm"
           >
             Search
           </button>
@@ -2094,15 +2094,15 @@ export default function RealWorldMapViewer({
       {/* ---------------------------------------------------- */}
       {/* LOCATION CARD (UPPER RIGHT) */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute top-4 right-4 z-20 hidden sm:flex items-center gap-3 rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/90 px-3.5 py-2 text-xs text-white shadow-xl backdrop-blur-md">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#14382a] border border-[#255943] text-[#52b788]">
+      <div className="absolute top-4 right-4 z-20 hidden sm:flex items-center gap-3 rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-2.5 text-xs text-[#162a21] shadow-lg backdrop-blur-md">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f8f5ee] border border-[#e2dad0] text-[#2d6a4f]">
           📍
         </div>
         <div className="flex flex-col">
-          <span className="font-bold text-white text-xs">
+          <span className="font-bold text-[#162a21] text-xs">
             {building?.name || (multiBuildingMode ? "National Cadastral Zone" : "Selected Parcel")}
           </span>
-          <span className="text-[10px] text-[#a8c3b5]">
+          <span className="text-[10px] font-semibold text-[#3d5a4c]">
             {building?.georeference
               ? `${building.georeference.latitude.toFixed(4)}° N, ${building.georeference.longitude.toFixed(4)}° E`
               : "State Land Registry • Verified GIS"}
@@ -2114,74 +2114,74 @@ export default function RealWorldMapViewer({
       {/* PROPERTY DETAILS OVERLAY CARD */}
       {/* ---------------------------------------------------- */}
       {(selectedUnitDetails || (!multiBuildingMode && building)) && (
-        <div className="absolute bottom-16 left-4 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#1f3a2f] bg-[#0f2d21]/95 p-4 text-white shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-[#1f3a2f] pb-2.5 mb-3">
+        <div className="absolute bottom-16 left-4 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-4 text-[#162a21] shadow-xl backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-[#e2dad0] pb-2.5 mb-3">
             <div className="flex items-center gap-2">
               <span className="text-base">🏢</span>
-              <h4 className="text-sm font-bold text-white">Property Details</h4>
+              <h4 className="text-sm font-bold text-[#162a21]">Property Details</h4>
             </div>
             {selectedUnitDetails && (
               <button
                 type="button"
                 onClick={() => setSelectedUnitDetails(null)}
-                className="text-xs text-[#a8c3b5] hover:text-white"
+                className="text-xs text-[#6b887a] hover:text-[#162a21]"
               >
                 ✕
               </button>
             )}
           </div>
 
-          <div className="space-y-2 text-xs text-[#a8c3b5]">
+          <div className="space-y-2 text-xs text-[#3d5a4c]">
             {selectedUnitDetails ? (
               <>
-                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
-                  <span className="text-[#6c8a7b]">ULPIN:</span>
-                  <span className="font-semibold text-white">{selectedUnitDetails.ulpin || "Unassigned"}</span>
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
+                  <span className="text-[#6b887a]">ULPIN:</span>
+                  <span className="font-semibold text-[#162a21]">{selectedUnitDetails.ulpin || "Unassigned"}</span>
                 </div>
-                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
-                  <span className="text-[#6c8a7b]">Unit / Survey #:</span>
-                  <span className="font-semibold text-white">{selectedUnitDetails.unitNumber}</span>
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
+                  <span className="text-[#6b887a]">Unit / Survey #:</span>
+                  <span className="font-semibold text-[#162a21]">{selectedUnitDetails.unitNumber}</span>
                 </div>
-                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
-                  <span className="text-[#6c8a7b]">Land Use:</span>
-                  <span className="font-semibold text-emerald-400">{selectedUnitDetails.spaceType || "RESIDENTIAL"}</span>
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
+                  <span className="text-[#6b887a]">Land Use:</span>
+                  <span className="font-semibold text-[#2d6a4f]">{selectedUnitDetails.spaceType || "RESIDENTIAL"}</span>
                 </div>
-                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
-                  <span className="text-[#6c8a7b]">Area:</span>
-                  <span className="font-semibold text-white">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
+                  <span className="text-[#6b887a]">Area:</span>
+                  <span className="font-semibold text-[#162a21]">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
                 </div>
                 <div className="flex justify-between pb-1">
-                  <span className="text-[#6c8a7b]">Floor Level:</span>
-                  <span className="font-semibold text-white">Floor {selectedUnitDetails.floorNumber}</span>
+                  <span className="text-[#6b887a]">Floor Level:</span>
+                  <span className="font-semibold text-[#162a21]">Floor {selectedUnitDetails.floorNumber}</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => onPropertyNavigate?.(selectedUnitDetails)}
-                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition border border-[#52b788]/30 cursor-pointer"
+                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-sm cursor-pointer"
                 >
                   View Full Details →
                 </button>
               </>
             ) : building ? (
               <>
-                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
-                  <span className="text-[#6c8a7b]">Structure Name:</span>
-                  <span className="font-semibold text-white truncate max-w-[160px]">{building.name}</span>
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
+                  <span className="text-[#6b887a]">Structure Name:</span>
+                  <span className="font-semibold text-[#162a21] truncate max-w-[160px]">{building.name}</span>
                 </div>
-                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
-                  <span className="text-[#6c8a7b]">Floors:</span>
-                  <span className="font-semibold text-white">{building.floors?.length || 0} Levels</span>
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
+                  <span className="text-[#6b887a]">Floors:</span>
+                  <span className="font-semibold text-[#162a21]">{building.floors?.length || 0} Levels</span>
                 </div>
                 <div className="flex justify-between pb-1">
-                  <span className="text-[#6c8a7b]">Verification:</span>
-                  <span className="font-semibold text-emerald-400">VERIFIED CADASTRE</span>
+                  <span className="text-[#6b887a]">Verification:</span>
+                  <span className="font-semibold text-[#2d6a4f]">VERIFIED CADASTRE</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => onBuildingSelect?.(building)}
-                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition border border-[#52b788]/30 cursor-pointer"
+                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-sm cursor-pointer"
                 >
                   Explore Building Parcels →
                 </button>
@@ -2200,7 +2200,7 @@ export default function RealWorldMapViewer({
           type="button"
           onClick={zoomIn}
           title="Zoom in"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 text-lg font-bold text-white shadow-xl hover:bg-[#1b4332] transition cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-lg font-bold text-[#2d6a4f] shadow-md hover:bg-[#f8f5ee] transition cursor-pointer"
         >
           +
         </button>
@@ -2209,7 +2209,7 @@ export default function RealWorldMapViewer({
           type="button"
           onClick={zoomOut}
           title="Zoom out"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 text-lg font-bold text-white shadow-xl hover:bg-[#1b4332] transition cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-lg font-bold text-[#2d6a4f] shadow-md hover:bg-[#f8f5ee] transition cursor-pointer"
         >
           −
         </button>
@@ -2218,10 +2218,10 @@ export default function RealWorldMapViewer({
           type="button"
           onClick={toggle3D}
           title="Toggle 2D / 3D"
-          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xs font-bold shadow-xl transition cursor-pointer ${
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xs font-bold shadow-md transition cursor-pointer ${
             is3D
-              ? "border-[#52b788] bg-[#2d6a4f] text-white"
-              : "border-[#1f3a2f] bg-[#0f2d21]/95 text-[#a8c3b5] hover:bg-[#1b4332]"
+              ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
+              : "border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f8f5ee]"
           }`}
         >
           3D
@@ -2231,10 +2231,10 @@ export default function RealWorldMapViewer({
           type="button"
           onClick={() => setRotating((value) => !value)}
           title={rotating ? "Stop rotation" : "Rotate map"}
-          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-base font-bold shadow-xl transition cursor-pointer ${
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-base font-bold shadow-md transition cursor-pointer ${
             rotating
-              ? "border-[#52b788] bg-[#255943] text-white"
-              : "border-[#1f3a2f] bg-[#0f2d21]/95 text-white hover:bg-[#1b4332]"
+              ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
+              : "border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f8f5ee]"
           }`}
         >
           ↻
@@ -2244,7 +2244,7 @@ export default function RealWorldMapViewer({
           type="button"
           onClick={fitAllBuildings}
           title="Show all structures"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 text-base font-bold text-white shadow-xl hover:bg-[#1b4332] transition cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-base font-bold text-[#2d6a4f] shadow-md hover:bg-[#f8f5ee] transition cursor-pointer"
         >
           ⌂
         </button>

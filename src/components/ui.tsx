@@ -139,9 +139,9 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variantStyles = {
-    primary: "bg-[#1b4332] text-white hover:bg-[#0f2d21] border border-[#2d6a4f]",
-    secondary: "bg-[#255943] text-white hover:bg-[#1b4332] border border-[#52b788]/30",
-    outline: "bg-transparent text-[#a8c3b5] border border-[#1f3a2f] hover:bg-[#14382a] hover:text-white",
+    primary: "bg-[#2d6a4f] text-white hover:bg-[#1b4332] shadow-sm border border-[#2d6a4f]",
+    secondary: "bg-[#3d5a4c] text-white hover:bg-[#2d6a4f] border border-[#3d5a4c]",
+    outline: "bg-white text-[#162a21] border border-[#e2dad0] hover:bg-[#f3efe6] hover:text-[#2d6a4f] shadow-sm",
     danger: "bg-[#881337] text-white hover:bg-[#450a0a] border border-[#991b1b]",
     gold: "bg-[#b8860b] text-white hover:bg-[#8c6607] border border-[#c5a059]",
   };
