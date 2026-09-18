@@ -783,7 +783,7 @@ export default function Dashboard() {
           {roleMode === "PUBLIC_VIEWER" && (
             <>
               {!building ? (
-                <section className="w-full h-[calc(100vh-110px)] min-h-[650px] rounded-2xl overflow-hidden border border-[#e2dad0] shadow-md bg-white">
+                <section className="w-full h-[calc(100vh-130px)] min-h-[650px] rounded-2xl overflow-hidden border border-[#e2dad0] shadow-md bg-white">
                   {loadingDb ? (
                     <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#3d5a4c]">
                       Loading BhuVista cadastral registry...
