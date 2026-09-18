@@ -132,29 +132,33 @@ export function Sidebar({
     },
   ];
 
+  const isPublicViewer = roleMode === "PUBLIC_VIEWER";
+
   return (
     <aside
       className={`fixed left-0 top-20 bottom-0 z-40 flex flex-col border-r border-[#e2dad0] bg-[#fdfbf7] text-[#162a21] transition-all duration-300 ease-in-out ${
-        isOpen ? "w-64" : "w-16"
+        isOpen ? "w-[260px]" : "w-16"
       }`}
     >
-      {/* Active Role Indicator */}
-      <div className="border-b border-[#e2dad0] p-3 bg-[#f8f5ee]">
-        {isOpen ? (
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#3d5a4c]">
-              Active Portal
-            </span>
-            <span className="rounded bg-[#2d6a4f] px-2 py-0.5 text-[9px] font-bold text-white shadow-sm">
-              {roleMode}
-            </span>
-          </div>
-        ) : (
-          <div className="flex justify-center text-[10px] font-bold text-[#2d6a4f]">
-            {roleMode.charAt(0)}
-          </div>
-        )}
-      </div>
+      {/* Active Role Indicator (Only in internal/surveyor mode) */}
+      {!isPublicViewer && (
+        <div className="border-b border-[#e2dad0] p-3 bg-[#f8f5ee]">
+          {isOpen ? (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#3d5a4c]">
+                Active Portal
+              </span>
+              <span className="rounded bg-[#2d6a4f] px-2 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                {roleMode}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-center text-[10px] font-bold text-[#2d6a4f]">
+              {roleMode.charAt(0)}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation Groups */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">

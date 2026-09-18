@@ -779,35 +779,24 @@ export default function Dashboard() {
         </div>
       ) : (
         /* PUBLIC VIEWER OR UPLOADER PORTAL */
-        <div className="flex flex-col gap-6">
+        <div className="w-full h-full">
           {roleMode === "PUBLIC_VIEWER" && (
             <>
               {!building ? (
-                <section className="w-full h-[calc(100vh-130px)] min-h-[650px] rounded-2xl overflow-hidden border border-[#e2dad0] shadow-md bg-white">
-                  {loadingDb ? (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#3d5a4c]">
+                <section className="w-full h-[calc(100vh-80px)] min-h-[600px] relative overflow-hidden">
+                  <RealWorldMapViewer
+                    buildings={publicMapBuildings}
+                    onBuildingSelect={handlePublicBuildingSelect}
+                  />
+                  {loadingDb && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/90 px-4 py-1.5 text-xs font-semibold text-[#2d6a4f] shadow-md backdrop-blur-md flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-[#2d6a4f] animate-pulse" />
                       Loading BhuVista cadastral registry...
-                    </div>
-                  ) : publicMapBuildings.length > 0 ? (
-                    <RealWorldMapViewer
-                      buildings={publicMapBuildings}
-                      onBuildingSelect={handlePublicBuildingSelect}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center p-6 text-center text-[#3d5a4c]">
-                      <div>
-                        <h3 className="text-lg font-bold text-[#162a21]">
-                          No map-ready 3D structures found
-                        </h3>
-                        <p className="mt-2 text-xs max-w-md text-[#6b887a]">
-                          The registry contains records, but none currently have valid georeferenced coordinates.
-                        </p>
-                      </div>
                     </div>
                   )}
                 </section>
               ) : (
-                <div id="selected-building-view" className="flex flex-col gap-6">
+                <div id="selected-building-view" className="flex flex-col gap-6 p-6">
                   <Button variant="outline" size="sm" onClick={handleBackToMap} className="self-start">
                     ← Back to National Map
                   </Button>

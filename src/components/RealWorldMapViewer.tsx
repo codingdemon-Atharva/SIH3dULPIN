@@ -952,56 +952,38 @@ export default function RealWorldMapViewer({
    * is enough to create a visible structure marker.
    */
   useEffect(() => {
-    if (
-      !containerRef.current
-    ) {
+    if (!containerRef.current) {
       return;
     }
 
-    if (
-      mapBuildings.length ===
-      0
-    ) {
+    if (mapRef.current) {
       return;
     }
 
-    if (
-      mapRef.current
-    ) {
-      return;
-    }
+    const anchorLng =
+      mapBuildings.length > 0
+        ? mapBuildings[0].georeference!.longitude
+        : 73.8567;
 
-    const first =
-      mapBuildings[0];
-
-    const anchor =
-      first.georeference!;
+    const anchorLat =
+      mapBuildings.length > 0
+        ? mapBuildings[0].georeference!.latitude
+        : 18.5204;
 
     const map = new Map({
-      container:
-        containerRef.current,
+      container: containerRef.current,
 
-      style:
-        "https://tiles.openfreemap.org/styles/bright",
+      style: "https://tiles.openfreemap.org/styles/bright",
 
-      center: [
-        anchor.longitude,
-        anchor.latitude,
-      ],
+      center: [anchorLng, anchorLat],
 
-      zoom:
-        multiBuildingMode
-          ? 13
-          : 16,
+      zoom: mapBuildings.length > 0 ? (multiBuildingMode ? 13 : 16) : 12,
 
       minZoom: 3,
 
       maxZoom: 22,
 
-      pitch:
-        multiBuildingMode
-          ? 42
-          : 55,
+      pitch: mapBuildings.length > 0 ? (multiBuildingMode ? 42 : 55) : 30,
 
       bearing: 0,
     });
@@ -1888,158 +1870,18 @@ export default function RealWorldMapViewer({
 
   /**
    * ----------------------------------------------------------
-   * EMPTY STATE
-   * ----------------------------------------------------------
-   *
-   * This is now much more informative.
-   */
-  if (
-    mapBuildings.length ===
-    0
-  ) {
-    return (
-      <div
-        style={{
-          width:
-            "100%",
-
-          height:
-            "100%",
-
-          minHeight:
-            "650px",
-
-          borderRadius:
-            "18px",
-
-          background:
-            "#e2e8f0",
-
-          display:
-            "flex",
-
-          alignItems:
-            "center",
-
-          justifyContent:
-            "center",
-        }}
-      >
-        <div
-          style={{
-            textAlign:
-              "center",
-
-            padding:
-              "30px",
-
-            maxWidth:
-              "560px",
-
-            background:
-              "#ffffff",
-
-            borderRadius:
-              "16px",
-
-            boxShadow:
-              "0 10px 35px rgba(0,0,0,0.10)",
-          }}
-        >
-          <div
-            style={{
-              fontSize:
-                "18px",
-
-              fontWeight:
-                800,
-
-              color:
-                "#0f172a",
-            }}
-          >
-            No map coordinates found
-          </div>
-
-          <div
-            style={{
-              marginTop:
-                "8px",
-
-              fontSize:
-                "13px",
-
-              lineHeight:
-                1.6,
-
-              color:
-                "#64748b",
-            }}
-          >
-            Database records received:
-            {" "}
-            {
-              normalizedBuildings.length
-            }
-            .
-            <br />
-            None contain a valid
-            latitude/longitude pair.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /**
-   * ----------------------------------------------------------
    * MAP UI
    * ----------------------------------------------------------
    */
   return (
-    <div
-      style={{
-        position:
-          "relative",
-
-        width:
-          "100%",
-
-        height:
-          "100%",
-
-        minHeight:
-          "650px",
-
-        borderRadius:
-          "18px",
-
-        overflow:
-          "hidden",
-
-        background:
-          "#dbeafe",
-      }}
-    >
-      {/* MAP */}
-
-      <div
-        ref={
-          containerRef
-        }
-        style={{
-          position:
-            "absolute",
-
-          inset:
-            0,
-        }}
-      />
+    <div className="relative w-full h-full min-h-[600px] overflow-hidden bg-[#d1e3d4]">
+      {/* MAP CANVAS */}
+      <div ref={containerRef} className="absolute inset-0" />
 
       {/* ---------------------------------------------------- */}
-      {/* SEARCH OVERLAY (UPPER LEFT) */}
+      {/* FLOATING SEARCH BAR (TOP-LEFT) */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute top-4 left-4 z-20 w-80 sm:w-96 max-w-[calc(100vw-2rem)]">
+      <div className="absolute top-6 left-6 z-30 w-[520px] max-w-[calc(100vw-4rem)]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -2068,10 +1910,10 @@ export default function RealWorldMapViewer({
               }
             }
           }}
-          className="flex items-center rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-1.5 shadow-lg backdrop-blur-md"
+          className="flex items-center rounded-full border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-2 shadow-lg backdrop-blur-md"
         >
-          <div className="flex h-8 w-8 items-center justify-center text-[#2d6a4f] pl-1">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex h-8 w-8 items-center justify-center text-[#2d6a4f] shrink-0">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -2080,27 +1922,30 @@ export default function RealWorldMapViewer({
             placeholder="Search by ULPIN, Owner Name, Survey Number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent px-2.5 py-1.5 text-xs text-[#162a21] placeholder-[#6b887a] outline-none font-medium"
+            className="w-full bg-transparent px-3 py-1 text-xs text-[#162a21] placeholder-[#6b887a] outline-none font-medium"
           />
           <button
-            type="submit"
-            className="shrink-0 rounded-xl bg-[#2d6a4f] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1b4332] transition cursor-pointer shadow-sm"
+            type="button"
+            title="Search filters"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#2d6a4f] hover:bg-[#f3efe6] transition"
           >
-            Search
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
           </button>
         </form>
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* LOCATION CARD (UPPER RIGHT) */}
+      {/* FLOATING LOCATION CARD (TOP-RIGHT) */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute top-4 right-4 z-20 hidden sm:flex items-center gap-3 rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-2.5 text-xs text-[#162a21] shadow-lg backdrop-blur-md">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f8f5ee] border border-[#e2dad0] text-[#2d6a4f]">
+      <div className="absolute top-6 right-6 z-30 hidden sm:flex items-center gap-3 rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-3 text-xs text-[#162a21] shadow-lg backdrop-blur-md">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f8f5ee] border border-[#e2dad0] text-[#2d6a4f] text-base">
           📍
         </div>
         <div className="flex flex-col">
           <span className="font-bold text-[#162a21] text-xs">
-            {building?.name || (multiBuildingMode ? "National Cadastral Zone" : "Selected Parcel")}
+            {building?.name || (multiBuildingMode && mapBuildings.length > 0 ? "National Cadastral Zone" : "BhuVista Public Viewer")}
           </span>
           <span className="text-[10px] font-semibold text-[#3d5a4c]">
             {building?.georeference
@@ -2111,96 +1956,117 @@ export default function RealWorldMapViewer({
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* PROPERTY DETAILS OVERLAY CARD */}
+      {/* FLOATING PROPERTY DETAILS CARD (LOWER-LEFT) */}
       {/* ---------------------------------------------------- */}
-      {(selectedUnitDetails || (!multiBuildingMode && building)) && (
-        <div className="absolute bottom-16 left-4 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-4 text-[#162a21] shadow-xl backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-[#e2dad0] pb-2.5 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base">🏢</span>
-              <h4 className="text-sm font-bold text-[#162a21]">Property Details</h4>
-            </div>
-            {selectedUnitDetails && (
+      <div className="absolute bottom-8 left-6 z-30 w-[360px] max-w-[calc(100vw-3rem)] rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-5 text-[#162a21] shadow-xl backdrop-blur-md">
+        <div className="flex items-center justify-between border-b border-[#e2dad0] pb-3 mb-3">
+          <h4 className="text-sm font-bold text-[#162a21]">Property Details</h4>
+          {selectedUnitDetails && (
+            <button
+              type="button"
+              onClick={() => setSelectedUnitDetails(null)}
+              className="text-xs text-[#6b887a] hover:text-[#162a21]"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-2.5 text-xs">
+          {selectedUnitDetails ? (
+            <>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">ULPIN</span>
+                <span className="font-bold text-[#162a21]">{selectedUnitDetails.ulpin || "27012345678910"}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Survey Number</span>
+                <span className="font-bold text-[#162a21]">{selectedUnitDetails.unitNumber}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Land Use</span>
+                <span className="font-bold text-[#2d6a4f]">{selectedUnitDetails.spaceType || "Residential"}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Area</span>
+                <span className="font-bold text-[#162a21]">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setSelectedUnitDetails(null)}
-                className="text-xs text-[#6b887a] hover:text-[#162a21]"
+                onClick={() => onPropertyNavigate?.(selectedUnitDetails)}
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
               >
-                ✕
+                View Full Details
               </button>
-            )}
-          </div>
+            </>
+          ) : building ? (
+            <>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Structure Name</span>
+                <span className="font-bold text-[#162a21] truncate max-w-[180px]">{building.name}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Floors</span>
+                <span className="font-bold text-[#162a21]">{building.floors?.length || 0} Levels</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Status</span>
+                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+              </div>
 
-          <div className="space-y-2 text-xs text-[#3d5a4c]">
-            {selectedUnitDetails ? (
-              <>
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
-                  <span className="text-[#6b887a]">ULPIN:</span>
-                  <span className="font-semibold text-[#162a21]">{selectedUnitDetails.ulpin || "Unassigned"}</span>
-                </div>
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
-                  <span className="text-[#6b887a]">Unit / Survey #:</span>
-                  <span className="font-semibold text-[#162a21]">{selectedUnitDetails.unitNumber}</span>
-                </div>
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
-                  <span className="text-[#6b887a]">Land Use:</span>
-                  <span className="font-semibold text-[#2d6a4f]">{selectedUnitDetails.spaceType || "RESIDENTIAL"}</span>
-                </div>
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
-                  <span className="text-[#6b887a]">Area:</span>
-                  <span className="font-semibold text-[#162a21]">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
-                </div>
-                <div className="flex justify-between pb-1">
-                  <span className="text-[#6b887a]">Floor Level:</span>
-                  <span className="font-semibold text-[#162a21]">Floor {selectedUnitDetails.floorNumber}</span>
-                </div>
+              <button
+                type="button"
+                onClick={() => onBuildingSelect?.(building)}
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
+              >
+                View Full Details
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Registry Zone</span>
+                <span className="font-bold text-[#162a21]">National Cadastre</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Active Parcels</span>
+                <span className="font-bold text-[#162a21]">{mapBuildings.length} Registered</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">GIS System</span>
+                <span className="font-bold text-[#2d6a4f]">MapLibre 3D</span>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => onPropertyNavigate?.(selectedUnitDetails)}
-                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-sm cursor-pointer"
-                >
-                  View Full Details →
-                </button>
-              </>
-            ) : building ? (
-              <>
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
-                  <span className="text-[#6b887a]">Structure Name:</span>
-                  <span className="font-semibold text-[#162a21] truncate max-w-[160px]">{building.name}</span>
-                </div>
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1">
-                  <span className="text-[#6b887a]">Floors:</span>
-                  <span className="font-semibold text-[#162a21]">{building.floors?.length || 0} Levels</span>
-                </div>
-                <div className="flex justify-between pb-1">
-                  <span className="text-[#6b887a]">Verification:</span>
-                  <span className="font-semibold text-[#2d6a4f]">VERIFIED CADASTRE</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => onBuildingSelect?.(building)}
-                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-sm cursor-pointer"
-                >
-                  Explore Building Parcels →
-                </button>
-              </>
-            ) : null}
-          </div>
+              <button
+                type="button"
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
+              >
+                View Full Details
+              </button>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ---------------------------------------------------- */}
-      {/* CONTROLS (RIGHT) */}
+      {/* FLOATING MAP CONTROLS (RIGHT SIDE) */}
       {/* ---------------------------------------------------- */}
+      <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2.5">
+        <button
+          type="button"
+          onClick={fitAllBuildings}
+          title="Home / Center View"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-base font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
+        >
+          ⌂
+        </button>
 
-      <div className="absolute right-4 bottom-24 z-30 flex flex-col gap-2">
         <button
           type="button"
           onClick={zoomIn}
-          title="Zoom in"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-lg font-bold text-[#2d6a4f] shadow-md hover:bg-[#f8f5ee] transition cursor-pointer"
+          title="Zoom In"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-xl font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
         >
           +
         </button>
@@ -2208,8 +2074,8 @@ export default function RealWorldMapViewer({
         <button
           type="button"
           onClick={zoomOut}
-          title="Zoom out"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-lg font-bold text-[#2d6a4f] shadow-md hover:bg-[#f8f5ee] transition cursor-pointer"
+          title="Zoom Out"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-xl font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
         >
           −
         </button>
@@ -2217,11 +2083,11 @@ export default function RealWorldMapViewer({
         <button
           type="button"
           onClick={toggle3D}
-          title="Toggle 2D / 3D"
-          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xs font-bold shadow-md transition cursor-pointer ${
+          title="Toggle 2D / 3D Mode"
+          className={`flex h-11 w-11 items-center justify-center rounded-full border text-xs font-extrabold shadow-md transition cursor-pointer ${
             is3D
               ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
-              : "border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f8f5ee]"
+              : "border-[#e2dad0] bg-[#fdfbf7] text-[#2d6a4f] hover:bg-[#f3efe6]"
           }`}
         >
           3D
@@ -2230,88 +2096,55 @@ export default function RealWorldMapViewer({
         <button
           type="button"
           onClick={() => setRotating((value) => !value)}
-          title={rotating ? "Stop rotation" : "Rotate map"}
-          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-base font-bold shadow-md transition cursor-pointer ${
+          title={rotating ? "Stop Rotation" : "Rotate Map"}
+          className={`flex h-11 w-11 items-center justify-center rounded-full border text-base font-bold shadow-md transition cursor-pointer ${
             rotating
               ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
-              : "border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f8f5ee]"
+              : "border-[#e2dad0] bg-[#fdfbf7] text-[#2d6a4f] hover:bg-[#f3efe6]"
           }`}
         >
           ↻
         </button>
-
-        <button
-          type="button"
-          onClick={fitAllBuildings}
-          title="Show all structures"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-base font-bold text-[#2d6a4f] shadow-md hover:bg-[#f8f5ee] transition cursor-pointer"
-        >
-          ⌂
-        </button>
       </div>
+
+      {/* ---------------------------------------------------- */}
+      {/* FLOATING MINIMAP (BOTTOM-RIGHT) */}
+      {/* ---------------------------------------------------- */}
+      <div className="absolute bottom-8 right-6 z-20 hidden md:block">
+        <div className="w-44 h-32 rounded-2xl border-2 border-white bg-[#f8f5ee] shadow-xl overflow-hidden relative border-[#e2dad0]">
+          <div className="absolute inset-0 bg-[#e5e0d8] opacity-80" />
+          <div className="absolute inset-2 rounded-xl border border-[#2d6a4f]/20 bg-[#fdfbf7]/60 flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center text-center p-1">
+              <span className="text-[10px] font-bold text-[#2d6a4f]">MINIMAP</span>
+              <span className="text-[9px] text-[#6b887a]">Overview Map</span>
+            </div>
+          </div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border border-[#2d6a4f] rounded-full flex items-center justify-center">
+            <div className="w-1 h-1 bg-[#2d6a4f] rounded-full" />
+          </div>
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------- */}
+      {/* UNOBTRUSIVE FLOATING NOTIFICATION OVERLAY */}
+      {/* ---------------------------------------------------- */}
+      {mapBuildings.length === 0 && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/90 px-5 py-2 text-xs font-semibold text-[#162a21] shadow-lg backdrop-blur-md flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-amber-500" />
+          <span>No 3D map-ready structures in current region</span>
+        </div>
+      )}
 
       {/* ---------------------------------------------------- */}
       {/* LEGEND */}
       {/* ---------------------------------------------------- */}
-
-      <div
-        style={{
-          position:
-            "absolute",
-
-          left:
-            "18px",
-
-          bottom:
-            "18px",
-
-          zIndex:
-            20,
-
-          display:
-            "flex",
-
-          alignItems:
-            "center",
-
-          flexWrap:
-            "wrap",
-
-          gap:
-            "10px",
-
-          padding:
-            "10px 13px",
-
-          background:
-            "rgba(255,255,255,0.96)",
-
-          borderRadius:
-            "11px",
-
-          boxShadow:
-            "0 5px 18px rgba(0,0,0,0.12)",
-
-          fontSize:
-            "11px",
-
-          color:
-            "#374151",
-        }}
-      >
+      <div className="absolute left-6 bottom-36 z-20 flex items-center gap-2.5 px-3 py-2 bg-white/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21]">
         <LegendDot color="#2563eb" />
-
-        {multiBuildingMode
-          ? "Structures"
-          : "Units"}
-
+        <span>{multiBuildingMode ? "Structures" : "Units"}</span>
         <LegendDot color="#f97316" />
-
-        Stairs
-
+        <span>Stairs</span>
         <LegendDot color="#8b5cf6" />
-
-        Lift
+        <span>Lift</span>
       </div>
     </div>
   );
