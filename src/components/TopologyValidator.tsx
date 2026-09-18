@@ -89,7 +89,9 @@ function StatusBadge({
 }
 
 
-export default function TopologyValidator() {
+import type { ParsedBuilding } from "@/src/lib/parser/types";
+
+export default function TopologyValidator({ building }: { building?: ParsedBuilding }) {
 
   const results =
     validateCadastralModel();

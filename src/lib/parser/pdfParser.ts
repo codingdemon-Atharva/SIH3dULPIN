@@ -10,7 +10,11 @@ export function parsePDFText(
     if (jsonMatch) {
       try {
         const json = JSON.parse(jsonMatch[0]);
-        return parseGeoJSON(json, buildingName);
+        const parsed = parseGeoJSON(json);
+        if (parsed) {
+          parsed.name = buildingName;
+        }
+        return parsed;
       } catch (e) {
         console.warn("Failed to parse embedded GeoJSON stream in PDF:", e);
       }

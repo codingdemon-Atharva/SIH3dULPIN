@@ -81,7 +81,7 @@ export default function Dashboard() {
     useState(false);
 
   const [activeNavSection, setActiveNavSection] =
-    useState("dashboard");
+    useState("home");
 
   /**
    * LOAD CURRENT AUTHENTICATED USER
@@ -783,9 +783,9 @@ export default function Dashboard() {
           {roleMode === "PUBLIC_VIEWER" && (
             <>
               {!building ? (
-                <section className="w-full h-[calc(100vh-140px)] min-h-[650px] rounded-2xl overflow-hidden border border-[#1f3a2f] shadow-2xl bg-[#0b1511]">
+                <section className="w-full h-[calc(100vh-110px)] min-h-[650px] rounded-2xl overflow-hidden border border-[#e2dad0] shadow-md bg-white">
                   {loadingDb ? (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#a8c3b5]">
+                    <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#3d5a4c]">
                       Loading BhuVista cadastral registry...
                     </div>
                   ) : publicMapBuildings.length > 0 ? (
@@ -794,12 +794,12 @@ export default function Dashboard() {
                       onBuildingSelect={handlePublicBuildingSelect}
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center p-6 text-center text-[#a8c3b5]">
+                    <div className="flex h-full w-full items-center justify-center p-6 text-center text-[#3d5a4c]">
                       <div>
-                        <h3 className="text-lg font-bold text-white">
+                        <h3 className="text-lg font-bold text-[#162a21]">
                           No map-ready 3D structures found
                         </h3>
-                        <p className="mt-2 text-xs max-w-md text-[#6c8a7b]">
+                        <p className="mt-2 text-xs max-w-md text-[#6b887a]">
                           The registry contains records, but none currently have valid georeferenced coordinates.
                         </p>
                       </div>

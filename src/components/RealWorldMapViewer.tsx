@@ -137,16 +137,23 @@ function getXY(
     ];
   }
 
+  const obj = point as {
+    x?: number;
+    y?: number;
+    lng?: number;
+    lat?: number;
+  };
+
   return [
     Number(
-      point.x ??
-        point.lng ??
+      obj.x ??
+        obj.lng ??
         0
     ) || 0,
 
     Number(
-      point.y ??
-        point.lat ??
+      obj.y ??
+        obj.lat ??
         0
     ) || 0,
   ];
@@ -352,11 +359,6 @@ function normalizeBuilding(
       input?.title ??
       "Cadastral Building",
 
-    address:
-      input?.address ??
-      input?.location ??
-      "",
-
     ...(hasCoordinates
       ? {
           georeference: {
@@ -523,6 +525,12 @@ export default function RealWorldMapViewer({
   const [rotating, setRotating] =
     useState(false);
 
+  const [searchQuery, setSearchQuery] =
+    useState("");
+
+  const [selectedUnitDetails, setSelectedUnitDetails] =
+    useState<Property2D | null>(null);
+
   /**
    * Normalize incoming records.
    */
@@ -594,7 +602,7 @@ export default function RealWorldMapViewer({
           for (const unit of
             floor.units ??
             []) {
-            let rawPolygon =
+            const rawPolygon =
               Array.isArray(
                 unit.polygon
               )
@@ -996,11 +1004,6 @@ export default function RealWorldMapViewer({
           : 55,
 
       bearing: 0,
-
-      antialias: true,
-
-      attributionControl:
-        true,
     });
 
     mapRef.current =
@@ -1699,77 +1702,11 @@ export default function RealWorldMapViewer({
           unit
         );
 
+        setSelectedUnitDetails(unit);
+
         onPropertyNavigate?.(
           unit
         );
-
-        new Popup({
-          closeButton:
-            true,
-          closeOnClick:
-            true,
-          maxWidth:
-            "320px",
-        })
-          .setLngLat(
-            event.lngLat
-          )
-          .setHTML(
-            `
-              <div
-                style="
-                  font-family:system-ui,sans-serif;
-                  color:#0f172a;
-                  padding:6px;
-                "
-              >
-                <div
-                  style="
-                    font-size:16px;
-                    font-weight:800;
-                  "
-                >
-                  Unit ${
-                    unit.unitNumber ||
-                    "—"
-                  }
-                </div>
-
-                <div
-                  style="
-                    margin-top:6px;
-                    font-size:12px;
-                    line-height:1.7;
-                    color:#64748b;
-                  "
-                >
-                  <div>
-                    Floor:
-                    ${
-                      unit.floorNumber
-                    }
-                  </div>
-
-                  <div>
-                    Area:
-                    ${
-                      unit.area ||
-                      "—"
-                    } m²
-                  </div>
-
-                  <div>
-                    ULPIN:
-                    ${
-                      unit.ulpin ||
-                      "Not assigned"
-                    }
-                  </div>
-                </div>
-              </div>
-            `
-          )
-          .addTo(map);
       };
 
     map.on(
@@ -2100,217 +2037,214 @@ export default function RealWorldMapViewer({
       />
 
       {/* ---------------------------------------------------- */}
-      {/* INFO PANEL */}
+      {/* SEARCH OVERLAY (UPPER LEFT) */}
       {/* ---------------------------------------------------- */}
-
-      <div
-        style={{
-          position:
-            "absolute",
-
-          top:
-            "18px",
-
-          left:
-            "18px",
-
-          zIndex:
-            20,
-
-          background:
-            "rgba(255,255,255,0.96)",
-
-          borderRadius:
-            "13px",
-
-          padding:
-            "12px 15px",
-
-          boxShadow:
-            "0 7px 22px rgba(0,0,0,0.14)",
-
-          pointerEvents:
-            "none",
-        }}
-      >
-        <div
-          style={{
-            fontSize:
-              "16px",
-
-            fontWeight:
-              800,
-
-            color:
-              "#111827",
+      <div className="absolute top-4 left-4 z-20 w-80 sm:w-96 max-w-[calc(100vw-2rem)]">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!searchQuery.trim()) return;
+            const term = searchQuery.trim().toLowerCase();
+            const matched = mapBuildings.find((b) =>
+              b.name?.toLowerCase().includes(term) ||
+              b.id.toLowerCase().includes(term) ||
+              b.floors?.some((f) =>
+                f.units?.some((u) =>
+                  u.unitNumber.toLowerCase().includes(term) ||
+                  u.ulpin?.toLowerCase().includes(term)
+                )
+              )
+            );
+            if (matched && mapRef.current) {
+              onBuildingSelect?.(matched);
+              const bounds = getSingleBuildingBounds(matched);
+              if (bounds) {
+                mapRef.current.fitBounds(bounds, {
+                  padding: 180,
+                  maxZoom: 18,
+                  pitch: 55,
+                  duration: 800,
+                });
+              }
+            }
           }}
+          className="flex items-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 p-1.5 shadow-2xl backdrop-blur-md"
         >
-          {multiBuildingMode
-            ? "Public Cadastral Map"
-            : building?.name ??
-              "Cadastral Building"}
-        </div>
-
-        <div
-          style={{
-            marginTop:
-              "4px",
-
-            fontSize:
-              "11px",
-
-            color:
-              "#64748b",
-          }}
-        >
-          {multiBuildingMode
-            ? `${mapBuildings.length} structures visible`
-            : approvalStatus ??
-              "Cadastral structure"}
-        </div>
-
-        {multiBuildingMode && (
-          <div
-            style={{
-              marginTop:
-                "5px",
-
-              fontSize:
-                "11px",
-
-              color:
-                "#2563eb",
-
-              fontWeight:
-                700,
-            }}
-          >
-            Click a structure to explore
+          <div className="flex h-8 w-8 items-center justify-center text-[#52b788] pl-1">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-        )}
+          <input
+            type="text"
+            placeholder="Search by ULPIN, Owner Name, Survey Number..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-transparent px-2.5 py-1.5 text-xs text-white placeholder-[#6c8a7b] outline-none"
+          />
+          <button
+            type="submit"
+            className="shrink-0 rounded-lg bg-[#2d6a4f] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1b4332] transition cursor-pointer border border-[#52b788]/30"
+          >
+            Search
+          </button>
+        </form>
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* CONTROLS */}
+      {/* LOCATION CARD (UPPER RIGHT) */}
+      {/* ---------------------------------------------------- */}
+      <div className="absolute top-4 right-4 z-20 hidden sm:flex items-center gap-3 rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/90 px-3.5 py-2 text-xs text-white shadow-xl backdrop-blur-md">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#14382a] border border-[#255943] text-[#52b788]">
+          📍
+        </div>
+        <div className="flex flex-col">
+          <span className="font-bold text-white text-xs">
+            {building?.name || (multiBuildingMode ? "National Cadastral Zone" : "Selected Parcel")}
+          </span>
+          <span className="text-[10px] text-[#a8c3b5]">
+            {building?.georeference
+              ? `${building.georeference.latitude.toFixed(4)}° N, ${building.georeference.longitude.toFixed(4)}° E`
+              : "State Land Registry • Verified GIS"}
+          </span>
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------- */}
+      {/* PROPERTY DETAILS OVERLAY CARD */}
+      {/* ---------------------------------------------------- */}
+      {(selectedUnitDetails || (!multiBuildingMode && building)) && (
+        <div className="absolute bottom-16 left-4 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#1f3a2f] bg-[#0f2d21]/95 p-4 text-white shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-[#1f3a2f] pb-2.5 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🏢</span>
+              <h4 className="text-sm font-bold text-white">Property Details</h4>
+            </div>
+            {selectedUnitDetails && (
+              <button
+                type="button"
+                onClick={() => setSelectedUnitDetails(null)}
+                className="text-xs text-[#a8c3b5] hover:text-white"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2 text-xs text-[#a8c3b5]">
+            {selectedUnitDetails ? (
+              <>
+                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
+                  <span className="text-[#6c8a7b]">ULPIN:</span>
+                  <span className="font-semibold text-white">{selectedUnitDetails.ulpin || "Unassigned"}</span>
+                </div>
+                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
+                  <span className="text-[#6c8a7b]">Unit / Survey #:</span>
+                  <span className="font-semibold text-white">{selectedUnitDetails.unitNumber}</span>
+                </div>
+                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
+                  <span className="text-[#6c8a7b]">Land Use:</span>
+                  <span className="font-semibold text-emerald-400">{selectedUnitDetails.spaceType || "RESIDENTIAL"}</span>
+                </div>
+                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
+                  <span className="text-[#6c8a7b]">Area:</span>
+                  <span className="font-semibold text-white">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
+                </div>
+                <div className="flex justify-between pb-1">
+                  <span className="text-[#6c8a7b]">Floor Level:</span>
+                  <span className="font-semibold text-white">Floor {selectedUnitDetails.floorNumber}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onPropertyNavigate?.(selectedUnitDetails)}
+                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition border border-[#52b788]/30 cursor-pointer"
+                >
+                  View Full Details →
+                </button>
+              </>
+            ) : building ? (
+              <>
+                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
+                  <span className="text-[#6c8a7b]">Structure Name:</span>
+                  <span className="font-semibold text-white truncate max-w-[160px]">{building.name}</span>
+                </div>
+                <div className="flex justify-between border-b border-[#1f3a2f]/50 pb-1">
+                  <span className="text-[#6c8a7b]">Floors:</span>
+                  <span className="font-semibold text-white">{building.floors?.length || 0} Levels</span>
+                </div>
+                <div className="flex justify-between pb-1">
+                  <span className="text-[#6c8a7b]">Verification:</span>
+                  <span className="font-semibold text-emerald-400">VERIFIED CADASTRE</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onBuildingSelect?.(building)}
+                  className="mt-3 w-full rounded-xl bg-[#2d6a4f] py-2 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition border border-[#52b788]/30 cursor-pointer"
+                >
+                  Explore Building Parcels →
+                </button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* CONTROLS (RIGHT) */}
       {/* ---------------------------------------------------- */}
 
-      <div
-        style={{
-          position:
-            "absolute",
-
-          right:
-            "18px",
-
-          bottom:
-            "120px",
-
-          zIndex:
-            30,
-
-          display:
-            "flex",
-
-          flexDirection:
-            "column",
-
-          gap:
-            "8px",
-        }}
-      >
+      <div className="absolute right-4 bottom-24 z-30 flex flex-col gap-2">
         <button
           type="button"
-          onClick={
-            zoomIn
-          }
+          onClick={zoomIn}
           title="Zoom in"
-          style={controlStyle}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 text-lg font-bold text-white shadow-xl hover:bg-[#1b4332] transition cursor-pointer"
         >
           +
         </button>
 
         <button
           type="button"
-          onClick={
-            zoomOut
-          }
+          onClick={zoomOut}
           title="Zoom out"
-          style={controlStyle}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 text-lg font-bold text-white shadow-xl hover:bg-[#1b4332] transition cursor-pointer"
         >
           −
         </button>
 
         <button
           type="button"
-          onClick={
-            toggle3D
-          }
+          onClick={toggle3D}
           title="Toggle 2D / 3D"
-          style={{
-            ...controlStyle,
-
-            background:
-              is3D
-                ? "#111827"
-                : "#ffffff",
-
-            color:
-              is3D
-                ? "#ffffff"
-                : "#111827",
-
-            fontSize:
-              "12px",
-          }}
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xs font-bold shadow-xl transition cursor-pointer ${
+            is3D
+              ? "border-[#52b788] bg-[#2d6a4f] text-white"
+              : "border-[#1f3a2f] bg-[#0f2d21]/95 text-[#a8c3b5] hover:bg-[#1b4332]"
+          }`}
         >
           3D
         </button>
 
         <button
           type="button"
-          onClick={() =>
-            setRotating(
-              (value) =>
-                !value
-            )
-          }
-          title={
+          onClick={() => setRotating((value) => !value)}
+          title={rotating ? "Stop rotation" : "Rotate map"}
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-base font-bold shadow-xl transition cursor-pointer ${
             rotating
-              ? "Stop rotation"
-              : "Rotate map"
-          }
-          style={{
-            ...controlStyle,
-
-            background:
-              rotating
-                ? "#2563eb"
-                : "#ffffff",
-
-            color:
-              rotating
-                ? "#ffffff"
-                : "#111827",
-
-            fontSize:
-              "20px",
-          }}
+              ? "border-[#52b788] bg-[#255943] text-white"
+              : "border-[#1f3a2f] bg-[#0f2d21]/95 text-white hover:bg-[#1b4332]"
+          }`}
         >
           ↻
         </button>
 
         <button
           type="button"
-          onClick={
-            fitAllBuildings
-          }
+          onClick={fitAllBuildings}
           title="Show all structures"
-          style={{
-            ...controlStyle,
-
-            fontSize:
-              "18px",
-          }}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#1f3a2f] bg-[#0f2d21]/95 text-base font-bold text-white shadow-xl hover:bg-[#1b4332] transition cursor-pointer"
         >
           ⌂
         </button>
@@ -2386,51 +2320,6 @@ export default function RealWorldMapViewer({
 /* ============================================================
    UI HELPERS
    ============================================================ */
-
-const controlStyle: React.CSSProperties =
-  {
-    width:
-      "46px",
-
-    height:
-      "46px",
-
-    flexShrink:
-      0,
-
-    border:
-      "none",
-
-    borderRadius:
-      "11px",
-
-    background:
-      "#ffffff",
-
-    color:
-      "#111827",
-
-    boxShadow:
-      "0 5px 16px rgba(0,0,0,0.16)",
-
-    fontSize:
-      "25px",
-
-    fontWeight:
-      700,
-
-    cursor:
-      "pointer",
-
-    display:
-      "flex",
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-  };
 
 function LegendDot({
   color,

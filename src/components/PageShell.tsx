@@ -24,7 +24,7 @@ export function PageShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="min-h-screen w-full max-w-vw overflow-x-hidden bg-[#081a12] text-[#f8faf8] flex flex-col font-sans">
+    <div className="min-h-screen w-full max-w-vw overflow-x-hidden bg-[#f8f5ee] text-[#162a21] flex flex-col font-sans">
       {/* HEADER */}
       <AppHeader
         roleMode={roleMode}
