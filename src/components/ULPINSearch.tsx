@@ -83,7 +83,7 @@ export default function ULPINSearch({
 
       {notFound && (
         <div style={{ marginTop: "8px", fontSize: "12px", color: "#dc2626", fontWeight: 600 }}>
-          ✕ No matching property found for "{query}".
+          ✕ No matching property found for &quot;{query}&quot;.
         </div>
       )}
     </div>

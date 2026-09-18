@@ -1,4 +1,3 @@
-
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -56,44 +55,44 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+    <main className="min-h-screen bg-[#081a12] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
 
         {/* Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white text-xl font-bold mb-4">
-            3D
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#1b4332] text-white text-xl font-bold mb-3 shadow-lg border border-[#2d6a4f]">
+            BV
           </div>
 
-          <h1 className="text-3xl font-bold text-white">
-            3D ULPIN
+          <h1 className="text-3xl font-bold text-white tracking-wide">
+            BhuVista
           </h1>
 
-          <p className="text-slate-400 mt-2">
-            Vertical Property Mapping Platform
+          <p className="text-[11px] font-semibold text-[#b7e4c7] mt-1 tracking-wider uppercase">
+            3D Land Intelligence Platform
           </p>
         </div>
 
         {/* Signup Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-[#fdfbf7] rounded-2xl shadow-2xl p-8 border border-[#e2dad0]">
 
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">
-              Create your account
+            <h2 className="text-2xl font-bold text-[#162a21]">
+              Create Public Account
             </h2>
 
-            <p className="text-slate-500 mt-1">
-              Create a viewer account to access 3D ULPIN
+            <p className="text-[#3d5a4c] text-sm mt-1">
+              Register to access 3D cadastral maps and land records on BhuVista
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
 
             {/* Name */}
             <div>
               <label
                 htmlFor="name"
-                className="block text-sm font-medium text-slate-700 mb-2"
+                className="block text-sm font-medium text-[#162a21] mb-1.5"
               >
                 Full Name
               </label>
@@ -105,7 +104,7 @@ export default function SignupPage() {
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Enter your full name"
                 required
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-2.5 text-[#162a21] outline-none transition focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
               />
             </div>
 
@@ -113,7 +112,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-slate-700 mb-2"
+                className="block text-sm font-medium text-[#162a21] mb-1.5"
               >
                 Email
               </label>
@@ -125,7 +124,7 @@ export default function SignupPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="Enter your email"
                 required
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-2.5 text-[#162a21] outline-none transition focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
               />
             </div>
 
@@ -133,7 +132,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-slate-700 mb-2"
+                className="block text-sm font-medium text-[#162a21] mb-1.5"
               >
                 Password
               </label>
@@ -146,10 +145,10 @@ export default function SignupPage() {
                 placeholder="Create a password"
                 required
                 minLength={8}
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-2.5 text-[#162a21] outline-none transition focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
               />
 
-              <p className="text-xs text-slate-400 mt-2">
+              <p className="text-xs text-[#6b887a] mt-1.5">
                 Password must be at least 8 characters.
               </p>
             </div>
@@ -158,7 +157,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-slate-700 mb-2"
+                className="block text-sm font-medium text-[#162a21] mb-1.5"
               >
                 Confirm Password
               </label>
@@ -170,13 +169,13 @@ export default function SignupPage() {
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder="Re-enter your password"
                 required
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-2.5 text-[#162a21] outline-none transition focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
               />
             </div>
 
             {/* Error */}
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                 {error}
               </div>
             )}
@@ -185,29 +184,28 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-[#1b4332] px-4 py-3 font-semibold text-white transition hover:bg-[#0f2d21] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Creating account..." : "Create viewer account"}
+              {loading ? "Creating account..." : "Register Account"}
             </button>
           </form>
 
           {/* Login link */}
-          <p className="text-center text-sm text-slate-500 mt-6">
-            Already have an account?{" "}
+          <p className="text-center text-sm text-[#6b887a] mt-6">
+            Already registered?{" "}
             <button
               type="button"
               onClick={() => router.push("/login")}
-              className="font-semibold text-emerald-700 hover:text-emerald-800"
+              className="font-semibold text-[#1b4332] hover:underline"
             >
               Sign in
             </button>
           </p>
 
           {/* Surveyor information */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <p className="text-xs text-center text-slate-400">
-              Surveyor accounts are provided separately through authorized
-              government credentials.
+          <div className="mt-6 pt-6 border-t border-[#e2dad0]">
+            <p className="text-xs text-center text-[#6b887a]">
+              Cadastral surveyor credentials are managed directly by government department administrators.
             </p>
           </div>
 
@@ -216,4 +214,3 @@ export default function SignupPage() {
     </main>
   );
 }
-

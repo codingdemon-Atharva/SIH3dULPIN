@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { ParsedBuilding } from "@/src/lib/parser/types";
 import { exportToCityGML } from "@/src/exporters/citygmlExporter";
 import { exportToLandXML } from "@/src/exporters/landxmlExporter";
