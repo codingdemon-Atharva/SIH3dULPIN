@@ -688,49 +688,36 @@ export default function RealWorldMapViewer({
             const space =
               `${unit.spaceType ?? ""} ${unit.unitNumber ?? ""}`.toLowerCase();
 
-            let fillColor =
-              "#2563eb";
+            // Earthy forest green & natural tones strictly conforming to BhuVista design system
+            let fillColor = "#2d6a4f"; // Forest Green (default structure/residential)
 
             if (
-              space.includes(
-                "stair"
-              ) ||
-              space.includes(
-                "staircase"
-              )
+              space.includes("stair") ||
+              space.includes("staircase")
             ) {
-              fillColor =
-                "#f97316";
+              fillColor = "#d4a373"; // Warm Sand / Earthy Gold
             } else if (
-              space.includes(
-                "lift"
-              ) ||
-              space.includes(
-                "elevator"
-              )
+              space.includes("lift") ||
+              space.includes("elevator")
             ) {
-              fillColor =
-                "#8b5cf6";
+              fillColor = "#52b788"; // Sage Accent
             } else if (
-              space.includes(
-                "corridor"
-              ) ||
-              space.includes(
-                "passage"
-              )
+              space.includes("corridor") ||
+              space.includes("passage")
             ) {
-              fillColor =
-                "#64748b";
+              fillColor = "#74c69d"; // Soft Meadow Green
             } else if (
-              space.includes(
-                "toilet"
-              ) ||
-              space.includes(
-                "restroom"
-              )
+              space.includes("toilet") ||
+              space.includes("restroom") ||
+              space.includes("utility")
             ) {
-              fillColor =
-                "#ec4899";
+              fillColor = "#b7b7a4"; // Muted Earth Grey/Taupe
+            } else if (
+              space.includes("commercial") ||
+              space.includes("office") ||
+              space.includes("shop")
+            ) {
+              fillColor = "#1b4332"; // Deep Pine
             }
 
             const base =
@@ -1127,10 +1114,10 @@ export default function RealWorldMapViewer({
         "9px";
 
       element.style.background =
-        "linear-gradient(135deg,#2563eb,#1d4ed8)";
+        "linear-gradient(135deg, #2d6a4f, #1b4332)";
 
       element.style.boxShadow =
-        "0 5px 18px rgba(37,99,235,0.55)";
+        "0 5px 18px rgba(45,106,79,0.45)";
 
       element.style.cursor =
         "pointer";
@@ -1507,16 +1494,17 @@ export default function RealWorldMapViewer({
         SOURCE_ID,
 
       paint: {
-        "fill-color":
-          [
-            "get",
-            "fillColor",
-          ],
+        "fill-color": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          "#d4a373", // Warm earthy gold highlight for selected unit
+          ["get", "fillColor"],
+        ],
 
         "fill-opacity":
           multiBuildingMode
             ? 0.78
-            : 0.32,
+            : 0.35,
       },
     });
 
@@ -1531,11 +1519,12 @@ export default function RealWorldMapViewer({
         SOURCE_ID,
 
       paint: {
-        "fill-extrusion-color":
-          [
-            "get",
-            "fillColor",
-          ],
+        "fill-extrusion-color": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          "#d4a373", // Warm earthy gold highlight for selected 3D building
+          ["get", "fillColor"],
+        ],
 
         "fill-extrusion-base":
           [
@@ -1591,9 +1580,21 @@ export default function RealWorldMapViewer({
 
     /**
      * --------------------------------------------------------
-     * POLYGON CLICK
+     * POLYGON CLICK & UNSELECT ON EMPTY CANVAS
      * --------------------------------------------------------
      */
+    let selectedFeatureId: string | number | null = null;
+
+    const clearFeatureSelection = () => {
+      if (selectedFeatureId !== null && map.getSource(SOURCE_ID)) {
+        map.setFeatureState(
+          { source: SOURCE_ID, id: selectedFeatureId },
+          { selected: false }
+        );
+        selectedFeatureId = null;
+      }
+    };
+
     const handlePolygonClick =
       (event: any) => {
         const features =
@@ -1610,12 +1611,22 @@ export default function RealWorldMapViewer({
         if (
           !features.length
         ) {
+          clearFeatureSelection();
+          setSelectedUnitDetails(null);
           return;
         }
 
-        const properties =
-          features[0]
-            ?.properties;
+        const feature = features[0];
+        const properties = feature?.properties;
+
+        if (feature.id !== undefined) {
+          clearFeatureSelection();
+          selectedFeatureId = feature.id;
+          map.setFeatureState(
+            { source: SOURCE_ID, id: feature.id },
+            { selected: true }
+          );
+        }
 
         if (
           !properties
@@ -1703,6 +1714,19 @@ export default function RealWorldMapViewer({
       handlePolygonClick
     );
 
+    // Unselect when clicking empty canvas
+    const handleMapClick = (event: any) => {
+      const features = map.queryRenderedFeatures(event.point, {
+        layers: [EXTRUSION_LAYER, FOOTPRINT_LAYER],
+      });
+      if (!features.length) {
+        clearFeatureSelection();
+        setSelectedUnitDetails(null);
+      }
+    };
+
+    map.on("click", handleMapClick);
+
     /**
      * Initial fit.
      */
@@ -1720,6 +1744,8 @@ export default function RealWorldMapViewer({
         FOOTPRINT_LAYER,
         handlePolygonClick
       );
+
+      map.off("click", handleMapClick);
 
       if (
         map.getLayer(
@@ -2138,12 +2164,12 @@ export default function RealWorldMapViewer({
       {/* ---------------------------------------------------- */}
       {/* LEGEND */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute left-6 bottom-36 z-20 flex items-center gap-2.5 px-3 py-2 bg-white/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21]">
-        <LegendDot color="#2563eb" />
+      <div className="absolute left-6 bottom-36 z-20 flex items-center gap-2.5 px-3 py-2 bg-[#fdfbf7]/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21] backdrop-blur-md">
+        <LegendDot color="#2d6a4f" />
         <span>{multiBuildingMode ? "Structures" : "Units"}</span>
-        <LegendDot color="#f97316" />
+        <LegendDot color="#d4a373" />
         <span>Stairs</span>
-        <LegendDot color="#8b5cf6" />
+        <LegendDot color="#52b788" />
         <span>Lift</span>
       </div>
     </div>
