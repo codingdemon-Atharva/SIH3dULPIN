@@ -39,6 +39,8 @@ export function Sidebar({
       router.push("/ulpin-registry");
     } else if (itemId === "land-records") {
       router.push("/land-records");
+    } else if (itemId === "downloads") {
+      router.push("/downloads");
     } else if (
       itemId === "home" ||
       itemId === "property-search" ||
