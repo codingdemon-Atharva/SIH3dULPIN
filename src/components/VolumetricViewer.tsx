@@ -927,10 +927,8 @@ export default function VolumetricViewer({
   // ----------------------------------------------------------
 
   useEffect(() => {
-    if (
-      !selectedPropertyId
-    ) {
-      setSelected(null);
+    if (!selectedPropertyId) {
+      setSelected((prev) => (prev === null ? prev : null));
       return;
     }
 
@@ -950,9 +948,7 @@ export default function VolumetricViewer({
             )
         );
 
-    setSelected(
-      match || null
-    );
+    setSelected((prev) => (prev?.id === match?.id ? prev : match || null));
   }, [
     selectedPropertyId,
     building,
