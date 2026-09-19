@@ -537,6 +537,9 @@ export default function RealWorldMapViewer({
   const [is3D, setIs3D] =
     useState(true);
 
+  const [showParcels, setShowParcels] =
+    useState(true);
+
   const [rotating, setRotating] =
     useState(false);
 
@@ -1680,18 +1683,24 @@ export default function RealWorldMapViewer({
       source:
         SOURCE_ID,
 
+      layout: {
+        visibility: showParcels ? "visible" : "none",
+      },
+
       paint: {
         "fill-color": [
           "case",
           ["boolean", ["feature-state", "selected"], false],
-          "#d4a373", // Warm earthy gold highlight for selected unit
+          "#d4a373", // Warm earthy gold highlight for selected unit/parcel
           ["get", "fillColor"],
         ],
 
-        "fill-opacity":
-          multiBuildingMode
-            ? 0.78
-            : 0.35,
+        "fill-opacity": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          0.65,
+          multiBuildingMode ? 0.35 : 0.25,
+        ],
       },
     });
 
@@ -1704,6 +1713,10 @@ export default function RealWorldMapViewer({
 
       source:
         SOURCE_ID,
+
+      layout: {
+        visibility: is3D ? "visible" : "none",
+      },
 
       paint: {
         "fill-extrusion-color": [
@@ -1735,8 +1748,8 @@ export default function RealWorldMapViewer({
 
         "fill-extrusion-opacity":
           multiBuildingMode
-            ? 0.9
-            : 0.88,
+            ? 0.85
+            : 0.8,
 
         "fill-extrusion-vertical-gradient":
           true,
@@ -1753,12 +1766,24 @@ export default function RealWorldMapViewer({
       source:
         SOURCE_ID,
 
-      paint: {
-        "line-color":
-          "#0f172a",
+      layout: {
+        visibility: showParcels ? "visible" : "none",
+      },
 
-        "line-width":
-          2.1,
+      paint: {
+        "line-color": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          "#1b4332", // Strong forest green boundary when selected
+          "#2d6a4f", // Restrained BhuVista green parcel boundary
+        ],
+
+        "line-width": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          3.5,
+          2.0,
+        ],
 
         "line-opacity":
           0.95,
@@ -1979,6 +2004,8 @@ export default function RealWorldMapViewer({
     mapBuildings,
     normalizedBuildings,
     multiBuildingMode,
+    is3D,
+    showParcels,
     onBuildingSelect,
     onPropertySelect,
     onPropertyNavigate,
@@ -2344,7 +2371,7 @@ export default function RealWorldMapViewer({
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* FLOATING MAP CONTROLS (RIGHT SIDE) */}
+      {/* FLOATING MAP CONTROLS & LAYER TOGGLES (RIGHT SIDE) */}
       {/* ---------------------------------------------------- */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2.5">
         <button
@@ -2372,6 +2399,19 @@ export default function RealWorldMapViewer({
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-xl font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
         >
           −
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowParcels((prev) => !prev)}
+          title="Toggle Parcel Boundaries"
+          className={`flex h-11 w-11 items-center justify-center rounded-full border text-[10px] font-extrabold shadow-md transition cursor-pointer ${
+            showParcels
+              ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
+              : "border-[#e2dad0] bg-[#fdfbf7] text-[#2d6a4f] hover:bg-[#f3efe6]"
+          }`}
+        >
+          PARCEL
         </button>
 
         <button
@@ -2423,22 +2463,28 @@ export default function RealWorldMapViewer({
       {/* UNOBTRUSIVE FLOATING NOTIFICATION OVERLAY */}
       {/* ---------------------------------------------------- */}
       {mapBuildings.length === 0 && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/90 px-5 py-2 text-xs font-semibold text-[#162a21] shadow-lg backdrop-blur-md flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-amber-500" />
-          <span>No 3D map-ready structures in current region</span>
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/95 px-5 py-2.5 text-xs font-semibold text-[#162a21] shadow-lg backdrop-blur-md flex items-center gap-2 text-center">
+          <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+          <span>No public cadastral parcels are available for this area.</span>
         </div>
       )}
 
       {/* ---------------------------------------------------- */}
       {/* LEGEND */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute left-6 bottom-36 z-20 flex items-center gap-2.5 px-3 py-2 bg-[#fdfbf7]/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21] backdrop-blur-md">
-        <LegendDot color="#2d6a4f" />
-        <span>{multiBuildingMode ? "Structures" : "Units"}</span>
-        <LegendDot color="#d4a373" />
-        <span>Stairs</span>
-        <LegendDot color="#52b788" />
-        <span>Lift</span>
+      <div className="absolute left-6 bottom-36 z-20 flex flex-wrap items-center gap-3 px-3.5 py-2 bg-[#fdfbf7]/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21] backdrop-blur-md">
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm border border-[#2d6a4f] bg-[#2d6a4f]/20 inline-block" />
+          <span className="font-semibold">Parcel</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm border-2 border-[#1b4332] bg-[#d4a373] inline-block" />
+          <span className="font-semibold">Selected</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <LegendDot color="#2d6a4f" />
+          <span className="font-semibold">3D Building</span>
+        </div>
       </div>
     </div>
   );
