@@ -10,7 +10,8 @@ export async function proxy(request: NextRequest) {
       request.nextUrl.pathname === "/" ||
       request.nextUrl.pathname.startsWith("/properties/") ||
       request.nextUrl.pathname.startsWith("/ulpin-registry") ||
-      request.nextUrl.pathname.startsWith("/land-records")
+      request.nextUrl.pathname.startsWith("/land-records") ||
+      request.nextUrl.pathname.startsWith("/downloads")
     ) {
       return NextResponse.next();
     }
@@ -24,7 +25,8 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname !== "/" &&
     !request.nextUrl.pathname.startsWith("/properties/") &&
     !request.nextUrl.pathname.startsWith("/ulpin-registry") &&
-    !request.nextUrl.pathname.startsWith("/land-records")
+    !request.nextUrl.pathname.startsWith("/land-records") &&
+    !request.nextUrl.pathname.startsWith("/downloads")
   ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
