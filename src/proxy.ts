@@ -6,7 +6,10 @@ export async function proxy(request: NextRequest) {
   const sessionToken = request.cookies.get("session")?.value;
 
   if (!sessionToken) {
-    if (request.nextUrl.pathname === "/") {
+    if (
+      request.nextUrl.pathname === "/" ||
+      request.nextUrl.pathname.startsWith("/properties/")
+    ) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/login", request.url));
@@ -14,7 +17,11 @@ export async function proxy(request: NextRequest) {
 
   const user = await verifySession(sessionToken);
 
-  if (!user && request.nextUrl.pathname !== "/") {
+  if (
+    !user &&
+    request.nextUrl.pathname !== "/" &&
+    !request.nextUrl.pathname.startsWith("/properties/")
+  ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

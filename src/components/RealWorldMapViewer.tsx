@@ -1513,9 +1513,9 @@ export default function RealWorldMapViewer({
    * SINGLE BUILDING BOUNDS
    * ----------------------------------------------------------
    */
-  function getSingleBuildingBounds(
+  const getSingleBuildingBounds = (
     target: ParsedBuilding
-  ) {
+  ) => {
     if (
       !target.georeference
     ) {
@@ -1590,7 +1590,7 @@ export default function RealWorldMapViewer({
     }
 
     return bounds;
-  }
+  };
 
   /**
    * ----------------------------------------------------------

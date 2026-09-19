@@ -1,0 +1,355 @@
+
+> 3d-ulpin@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 571ms
+✓ Running next.config took 17ms
+
+○ Compiling / ...
+ GET / 200 in 6.0s (next.js: 5.0s, proxy.ts: 251ms, application-code: 684ms)
+ GET / 200 in 89ms (next.js: 15ms, proxy.ts: 9ms, application-code: 65ms)
+ GET /api/auth/me 401 in 1161ms (next.js: 1112ms, application-code: 49ms)
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ GET /api/auth/me 401 in 21ms (next.js: 7ms, application-code: 15ms)
+ POST / 200 in 2.6s (next.js: 29ms, proxy.ts: 29ms, application-code: 2.6s)
+  └─ ƒ getPublicVerifiedBuildings() in 2266ms src/actions/getPublicBuildings.ts
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST / 200 in 90ms (next.js: 15ms, proxy.ts: 27ms, application-code: 48ms)
+  └─ ƒ getPublicVerifiedBuildings() in 16ms src/actions/getPublicBuildings.ts
+ GET /login 200 in 1129ms (next.js: 971ms, application-code: 158ms)
+✓ Compiled in 97ms
+ GET / 200 in 176ms (next.js: 13ms, proxy.ts: 110ms, application-code: 53ms)
+ GET /api/auth/me 401 in 13ms (next.js: 5ms, application-code: 9ms)
+ GET /api/auth/me 401 in 8ms (next.js: 3ms, application-code: 5ms)
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST / 200 in 80ms (next.js: 11ms, proxy.ts: 22ms, application-code: 47ms)
+  └─ ƒ getPublicVerifiedBuildings() in 17ms src/actions/getPublicBuildings.ts
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST / 200 in 69ms (next.js: 12ms, proxy.ts: 16ms, application-code: 40ms)
+  └─ ƒ getPublicVerifiedBuildings() in 25ms src/actions/getPublicBuildings.ts
+ GET /properties/unit-101 200 in 1847ms (next.js: 1601ms, proxy.ts: 6ms, application-code: 240ms)
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+Failed to fetch public property details: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:37:44)
+    at async getPublicPropertyDetails (src/app/actions/getPublicBuildings.ts:37:22)
+  35 |   try {
+  36 |     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+> 37 |     const building = await prisma.building.findFirst({
+     |                                            ^
+  38 |       where: {
+  39 |         approvalStatus: "APPROVED",
+  40 |         OR: [ {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST /properties/unit-101 200 in 77ms (next.js: 30ms, proxy.ts: 11ms, application-code: 36ms)
+  └─ ƒ getPublicPropertyDetails("unit-101") in 20ms src/actions/getPublicBuildings.ts
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+Failed to fetch public property details: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:37:44)
+    at async getPublicPropertyDetails (src/app/actions/getPublicBuildings.ts:37:22)
+  35 |   try {
+  36 |     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+> 37 |     const building = await prisma.building.findFirst({
+     |                                            ^
+  38 |       where: {
+  39 |         approvalStatus: "APPROVED",
+  40 |         OR: [ {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST /properties/unit-101 200 in 40ms (next.js: 9ms, proxy.ts: 6ms, application-code: 25ms)
+  └─ ƒ getPublicPropertyDetails("unit-101") in 12ms src/actions/getPublicBuildings.ts
+ GET / 200 in 88ms (next.js: 14ms, proxy.ts: 8ms, application-code: 66ms)
+ GET /api/auth/me 401 in 13ms (next.js: 4ms, application-code: 10ms)
+ GET /api/auth/me 401 in 11ms (next.js: 3ms, application-code: 8ms)
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST / 200 in 96ms (next.js: 11ms, proxy.ts: 25ms, application-code: 59ms)
+  └─ ƒ getPublicVerifiedBuildings() in 32ms src/actions/getPublicBuildings.ts
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
+
+  370 ;
+  371 async function getPublicVerifiedBuildings() {
+  372     try {
+→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST / 200 in 62ms (next.js: 8ms, proxy.ts: 16ms, application-code: 38ms)
+  └─ ƒ getPublicVerifiedBuildings() in 15ms src/actions/getPublicBuildings.ts
+ GET /properties/unit-101 200 in 90ms (next.js: 30ms, proxy.ts: 7ms, application-code: 53ms)
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+Failed to fetch public property details: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:37:44)
+    at async getPublicPropertyDetails (src/app/actions/getPublicBuildings.ts:37:22)
+  35 |   try {
+  36 |     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+> 37 |     const building = await prisma.building.findFirst({
+     |                                            ^
+  38 |       where: {
+  39 |         approvalStatus: "APPROVED",
+  40 |         OR: [ {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST /properties/unit-101 200 in 53ms (next.js: 8ms, proxy.ts: 9ms, application-code: 36ms)
+  └─ ƒ getPublicPropertyDetails("unit-101") in 20ms src/actions/getPublicBuildings.ts
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+Failed to fetch public property details: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst()` invocation in
+/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:410:168
+
+  407 }
+  408 try {
+  409     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+→ 410     const building = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findFirst(
+
+    at <unknown> (src/app/actions/getPublicBuildings.ts:37:44)
+    at async getPublicPropertyDetails (src/app/actions/getPublicBuildings.ts:37:22)
+  35 |   try {
+  36 |     // Attempt to find building where approvalStatus is APPROVED and matches property ID, ULPIN, or building ID
+> 37 |     const building = await prisma.building.findFirst({
+     |                                            ^
+  38 |       where: {
+  39 |         approvalStatus: "APPROVED",
+  40 |         OR: [ {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Building' },
+  clientVersion: '7.10.0'
+}
+ POST /properties/unit-101 200 in 39ms (next.js: 8ms, proxy.ts: 6ms, application-code: 26ms)
+  └─ ƒ getPublicPropertyDetails("unit-101") in 10ms src/actions/getPublicBuildings.ts
