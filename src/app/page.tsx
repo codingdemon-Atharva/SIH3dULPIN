@@ -30,6 +30,7 @@ import {
   updateBuildingStatus,
   deleteBuilding,
 } from "@/src/app/actions/cadastre";
+import { getPublicVerifiedBuildings } from "@/src/app/actions/getPublicBuildings";
 
 /**
  * MapLibre must remain client-side.
@@ -310,7 +311,7 @@ export default function Dashboard() {
           "PUBLIC_VIEWER"
         ) {
           const res =
-            await getAllBuildings();
+            await getPublicVerifiedBuildings();
 
           if (
             res.success &&
