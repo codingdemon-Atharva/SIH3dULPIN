@@ -26,6 +26,21 @@ setWorkerUrl(
    TYPES
    ============================================================ */
 
+interface SearchResultItem {
+  id: string;
+  type: "PROPERTY" | "BUILDING";
+  title: string;
+  subtitle: string;
+  landUse?: string;
+  area?: number;
+  ulpin?: string;
+  unitNumber?: string;
+  buildingName: string;
+  building: ParsedBuilding;
+  unit?: Property2D;
+  coordinates: [number, number];
+}
+
 interface RealWorldMapViewerProps {
   /**
    * Single-building mode.
@@ -528,8 +543,17 @@ export default function RealWorldMapViewer({
   const [searchQuery, setSearchQuery] =
     useState("");
 
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] =
+    useState(false);
+
   const [selectedUnitDetails, setSelectedUnitDetails] =
     useState<Property2D | null>(null);
+
+  const [selectedBuildingDetails, setSelectedBuildingDetails] =
+    useState<ParsedBuilding | null>(null);
+
+  const [activeSelectedFeatureId, setActiveSelectedFeatureId] =
+    useState<string | null>(null);
 
   /**
    * Normalize incoming records.
@@ -578,6 +602,169 @@ export default function RealWorldMapViewer({
     }, [
       normalizedBuildings,
     ]);
+
+  /**
+   * Calculate public search matches across buildings and property units.
+   */
+  const searchResults = useMemo<SearchResultItem[]>(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    const items: SearchResultItem[] = [];
+
+    for (const b of mapBuildings) {
+      const anchor = b.georeference;
+      if (!anchor) continue;
+
+      // Building name or ID match
+      const bNameMatch = b.name?.toLowerCase().includes(query);
+      const bIdMatch = b.id.toLowerCase().includes(query);
+
+      if (bNameMatch || bIdMatch) {
+        items.push({
+          id: `bld-${b.id}`,
+          type: "BUILDING",
+          title: b.name || "Cadastral Building",
+          subtitle: `${b.floors?.length || 0} Levels • Verified Cadastre`,
+          buildingName: b.name || "Cadastral Building",
+          building: b,
+          coordinates: [anchor.longitude, anchor.latitude],
+        });
+      }
+
+      // Units match across floors
+      for (const floor of b.floors ?? []) {
+        for (const unit of floor.units ?? []) {
+          const uUlpinMatch = unit.ulpin?.toLowerCase().includes(query);
+          const uNumMatch = unit.unitNumber.toLowerCase().includes(query);
+          const uSpaceMatch = unit.spaceType?.toLowerCase().includes(query);
+          const uIdMatch = unit.id.toLowerCase().includes(query);
+
+          if (uUlpinMatch || uNumMatch || uSpaceMatch || uIdMatch) {
+            let centerLng = anchor.longitude;
+            let centerLat = anchor.latitude;
+
+            const rawPoly = Array.isArray(unit.polygon) ? unit.polygon : [];
+            if (rawPoly.length >= 3) {
+              const geographic = isProbablyGeographic(
+                rawPoly as PointLike[],
+                anchor.longitude,
+                anchor.latitude
+              );
+
+              let sumX = 0;
+              let sumY = 0;
+              rawPoly.forEach((pt) => {
+                const [x, y] = getXY(pt as PointLike);
+                sumX += x;
+                sumY += y;
+              });
+              const avgX = sumX / rawPoly.length;
+              const avgY = sumY / rawPoly.length;
+
+              if (geographic) {
+                centerLng = avgX;
+                centerLat = avgY;
+              } else {
+                const [lng, lat] = localToLngLat(
+                  avgX,
+                  avgY,
+                  anchor.longitude,
+                  anchor.latitude
+                );
+                centerLng = lng;
+                centerLat = lat;
+              }
+            }
+
+            items.push({
+              id: `${b.id}-${unit.id}`,
+              type: "PROPERTY",
+              title: unit.ulpin || `Survey / Unit ${unit.unitNumber}`,
+              subtitle: `${b.name} • Floor ${floor.floorNumber}${unit.spaceType ? ` • ${unit.spaceType}` : ""}`,
+              landUse: unit.spaceType,
+              area: unit.area,
+              ulpin: unit.ulpin,
+              unitNumber: unit.unitNumber,
+              buildingName: b.name || "Cadastral Building",
+              building: b,
+              unit: unit,
+              coordinates: [centerLng, centerLat],
+            });
+          }
+        }
+      }
+    }
+
+    return items;
+  }, [mapBuildings, searchQuery]);
+
+  /**
+   * Handle selecting a property or building result from search dropdown.
+   */
+  const handleSelectSearchResult = (result: SearchResultItem) => {
+    setIsSearchDropdownOpen(false);
+    const map = mapRef.current;
+
+    if (result.type === "PROPERTY" && result.unit) {
+      setSelectedUnitDetails(result.unit);
+      setSelectedBuildingDetails(result.building);
+      onPropertySelect?.(result.unit);
+
+      const featureId = `${result.building.id}-${result.unit.id}`;
+      if (map && map.getSource(SOURCE_ID)) {
+        if (activeSelectedFeatureId) {
+          map.setFeatureState(
+            { source: SOURCE_ID, id: activeSelectedFeatureId },
+            { selected: false }
+          );
+        }
+        map.setFeatureState(
+          { source: SOURCE_ID, id: featureId },
+          { selected: true }
+        );
+        setActiveSelectedFeatureId(featureId);
+      }
+
+      if (map) {
+        map.flyTo({
+          center: result.coordinates,
+          zoom: 18.5,
+          pitch: is3D ? 55 : 0,
+          duration: 900,
+        });
+      }
+    } else if (result.type === "BUILDING") {
+      setSelectedUnitDetails(null);
+      setSelectedBuildingDetails(result.building);
+      onBuildingSelect?.(result.building);
+
+      if (map) {
+        map.flyTo({
+          center: result.coordinates,
+          zoom: 17,
+          pitch: is3D ? 50 : 0,
+          duration: 900,
+        });
+      }
+    }
+  };
+
+  /**
+   * Clear active selection and remove map highlights.
+   */
+  const handleClearSelection = () => {
+    setSelectedUnitDetails(null);
+    setSelectedBuildingDetails(null);
+    const map = mapRef.current;
+    if (map && map.getSource(SOURCE_ID) && activeSelectedFeatureId) {
+      map.setFeatureState(
+        { source: SOURCE_ID, id: activeSelectedFeatureId },
+        { selected: false }
+      );
+    }
+    setActiveSelectedFeatureId(null);
+  };
 
   const multiBuildingMode =
     buildings.length > 0;
@@ -1907,36 +2094,15 @@ export default function RealWorldMapViewer({
       {/* ---------------------------------------------------- */}
       {/* FLOATING SEARCH BAR (TOP-LEFT) */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute top-6 left-6 z-30 w-[520px] max-w-[calc(100vw-4rem)]">
+      <div className="absolute top-6 left-6 z-40 w-[520px] max-w-[calc(100vw-4rem)]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!searchQuery.trim()) return;
-            const term = searchQuery.trim().toLowerCase();
-            const matched = mapBuildings.find((b) =>
-              b.name?.toLowerCase().includes(term) ||
-              b.id.toLowerCase().includes(term) ||
-              b.floors?.some((f) =>
-                f.units?.some((u) =>
-                  u.unitNumber.toLowerCase().includes(term) ||
-                  u.ulpin?.toLowerCase().includes(term)
-                )
-              )
-            );
-            if (matched && mapRef.current) {
-              onBuildingSelect?.(matched);
-              const bounds = getSingleBuildingBounds(matched);
-              if (bounds) {
-                mapRef.current.fitBounds(bounds, {
-                  padding: 180,
-                  maxZoom: 18,
-                  pitch: 55,
-                  duration: 800,
-                });
-              }
+            if (searchResults.length > 0) {
+              handleSelectSearchResult(searchResults[0]);
             }
           }}
-          className="flex items-center rounded-full border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-2 shadow-lg backdrop-blur-md"
+          className="flex items-center rounded-full border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-2 shadow-lg backdrop-blur-md relative"
         >
           <div className="flex h-8 w-8 items-center justify-center text-[#2d6a4f] shrink-0">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1947,19 +2113,82 @@ export default function RealWorldMapViewer({
             type="text"
             placeholder="Search by ULPIN, Owner Name, Survey Number..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchDropdownOpen(true)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsSearchDropdownOpen(true);
+            }}
             className="w-full bg-transparent px-3 py-1 text-xs text-[#162a21] placeholder-[#6b887a] outline-none font-medium"
           />
-          <button
-            type="button"
-            title="Search filters"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#2d6a4f] hover:bg-[#f3efe6] transition"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-          </button>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setIsSearchDropdownOpen(false);
+              }}
+              title="Clear search"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#6b887a] hover:text-[#162a21] hover:bg-[#f3efe6] transition"
+            >
+              ✕
+            </button>
+          )}
         </form>
+
+        {/* SEARCH RESULTS DROPDOWN */}
+        {isSearchDropdownOpen && searchQuery.trim().length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-[#fdfbf7] border border-[#e2dad0] rounded-2xl shadow-2xl p-2.5 max-h-80 overflow-y-auto backdrop-blur-md">
+            {searchResults.length > 0 ? (
+              <div className="space-y-1">
+                <div className="px-3 py-1.5 text-[11px] font-bold text-[#2d6a4f] uppercase tracking-wider border-b border-[#e2dad0]/60 flex items-center justify-between">
+                  <span>Matching Public Records</span>
+                  <span className="text-[10px] bg-[#2d6a4f]/10 text-[#2d6a4f] px-2 py-0.5 rounded-full font-extrabold">
+                    {searchResults.length}
+                  </span>
+                </div>
+
+                {searchResults.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleSelectSearchResult(item)}
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-[#f3efe6] cursor-pointer transition border border-transparent hover:border-[#e2dad0]"
+                  >
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#2d6a4f]/10 text-[#2d6a4f]">
+                          {item.type === "PROPERTY" ? "PARCEL" : "BUILDING"}
+                        </span>
+                        <span className="font-bold text-xs text-[#162a21] truncate">
+                          {item.title}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium text-[#6b887a] truncate mt-0.5">
+                        {item.subtitle}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-end shrink-0">
+                      {item.landUse && (
+                        <span className="text-[10px] font-semibold text-[#2d6a4f]">
+                          {item.landUse}
+                        </span>
+                      )}
+                      {item.area && (
+                        <span className="text-[10px] text-[#6b887a] font-medium">
+                          {item.area} m²
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-xs font-semibold text-[#6b887a] bg-[#f8f5ee] rounded-xl border border-[#e2dad0]">
+                No matching public records found.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ---------------------------------------------------- */}
@@ -1987,13 +2216,13 @@ export default function RealWorldMapViewer({
       <div className="absolute bottom-8 left-6 z-30 w-[360px] max-w-[calc(100vw-3rem)] rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-5 text-[#162a21] shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between border-b border-[#e2dad0] pb-3 mb-3">
           <h4 className="text-sm font-bold text-[#162a21]">Property Details</h4>
-          {selectedUnitDetails && (
+          {(selectedUnitDetails || selectedBuildingDetails) && (
             <button
               type="button"
-              onClick={() => setSelectedUnitDetails(null)}
-              className="text-xs text-[#6b887a] hover:text-[#162a21]"
+              onClick={handleClearSelection}
+              className="text-xs font-semibold text-[#2d6a4f] hover:text-[#1b4332] bg-[#2d6a4f]/10 px-2 py-0.5 rounded-lg transition"
             >
-              ✕
+              ✕ Clear Selection
             </button>
           )}
         </div>
@@ -2001,13 +2230,19 @@ export default function RealWorldMapViewer({
         <div className="space-y-2.5 text-xs">
           {selectedUnitDetails ? (
             <>
+              {selectedUnitDetails.ulpin && (
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                  <span className="text-[#6b887a] font-medium">ULPIN</span>
+                  <span className="font-bold text-[#162a21]">{selectedUnitDetails.ulpin}</span>
+                </div>
+              )}
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">ULPIN</span>
-                <span className="font-bold text-[#162a21]">{selectedUnitDetails.ulpin || "27012345678910"}</span>
+                <span className="text-[#6b887a] font-medium">Survey / Unit #</span>
+                <span className="font-bold text-[#162a21]">{selectedUnitDetails.unitNumber}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Survey Number</span>
-                <span className="font-bold text-[#162a21]">{selectedUnitDetails.unitNumber}</span>
+                <span className="text-[#6b887a] font-medium">Floor Level</span>
+                <span className="font-bold text-[#162a21]">Floor {selectedUnitDetails.floorNumber}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
                 <span className="text-[#6b887a] font-medium">Land Use</span>
@@ -2017,10 +2252,43 @@ export default function RealWorldMapViewer({
                 <span className="text-[#6b887a] font-medium">Area</span>
                 <span className="font-bold text-[#162a21]">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
               </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Parent Structure</span>
+                <span className="font-bold text-[#162a21] truncate max-w-[180px]">
+                  {selectedBuildingDetails?.name || building?.name || "Cadastral Structure"}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Verification</span>
+                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+              </div>
 
               <button
                 type="button"
                 onClick={() => onPropertyNavigate?.(selectedUnitDetails)}
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
+              >
+                View Full Details
+              </button>
+            </>
+          ) : selectedBuildingDetails ? (
+            <>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Structure Name</span>
+                <span className="font-bold text-[#162a21] truncate max-w-[180px]">{selectedBuildingDetails.name}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Floors</span>
+                <span className="font-bold text-[#162a21]">{selectedBuildingDetails.floors?.length || 0} Levels</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Status</span>
+                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onBuildingSelect?.(selectedBuildingDetails)}
                 className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
               >
                 View Full Details
