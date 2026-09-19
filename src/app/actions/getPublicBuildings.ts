@@ -72,7 +72,7 @@ export async function getPublicPropertyDetails(id: string) {
     }
 
     // Find the specific matching unit if present
-    let matchedUnit: any = null;
+    let matchedUnit: Record<string, unknown> | null = null;
     for (const floor of building.floors) {
       const u = floor.units.find((unit) => unit.id === id || unit.ulpin === id);
       if (u) {
@@ -103,5 +103,82 @@ export async function getPublicPropertyDetails(id: string) {
   } catch (error) {
     console.error("Failed to fetch public property details:", error);
     return { success: false, building: null, unit: null };
+  }
+}
+
+export async function getPublicRegistryRecords() {
+  try {
+    const verifiedBuildings = await prisma.building.findMany({
+      where: {
+        approvalStatus: "APPROVED", // Strictly public verified records only
+      },
+      include: {
+        floors: {
+          include: {
+            units: true,
+          },
+          orderBy: {
+            floorNumber: "asc",
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const records: Array<{
+      id: string;
+      ulpin: string | null;
+      unitNumber: string;
+      buildingId: string;
+      buildingName: string;
+      floorNumber: number;
+      spaceType: string;
+      area: number;
+      latitude: number;
+      longitude: number;
+      verifiedAt: string | null;
+      approvalStatus: string;
+      hasGeometry: boolean;
+    }> = [];
+
+    for (const building of verifiedBuildings) {
+      for (const floor of building.floors) {
+        for (const unit of floor.units) {
+          let polygonArray: unknown[] = [];
+          if (typeof unit.polygon === "string") {
+            try {
+              polygonArray = JSON.parse(unit.polygon) as unknown[];
+            } catch {
+              polygonArray = [];
+            }
+          } else if (Array.isArray(unit.polygon)) {
+            polygonArray = unit.polygon;
+          }
+
+          records.push({
+            id: unit.id,
+            ulpin: unit.ulpin || null,
+            unitNumber: unit.unitNumber || "UNIT",
+            buildingId: building.id,
+            buildingName: building.name || "Cadastral Structure",
+            floorNumber: floor.floorNumber,
+            spaceType: unit.spaceType || "RESIDENTIAL",
+            area: Number(unit.area) || 0,
+            latitude: building.latitude,
+            longitude: building.longitude,
+            verifiedAt: building.verifiedAt ? building.verifiedAt.toISOString() : null,
+            approvalStatus: building.approvalStatus,
+            hasGeometry: Array.isArray(polygonArray) && polygonArray.length >= 3,
+          });
+        }
+      }
+    }
+
+    return { success: true, records, count: records.length };
+  } catch (error) {
+    console.error("Failed to fetch public registry records:", error);
+    return { success: false, records: [], count: 0 };
   }
 }

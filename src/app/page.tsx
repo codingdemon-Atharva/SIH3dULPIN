@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import FileUploader from "@/src/components/FileUploader";
 import type {
@@ -54,8 +54,9 @@ type UserRole =
   | "VIEWER"
   | "SURVEYOR";
 
-export default function Dashboard() {
+function DashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [roleMode, setRoleMode] =
     useState<RoleMode>("PUBLIC_VIEWER");
@@ -83,6 +84,9 @@ export default function Dashboard() {
 
   const [activeNavSection, setActiveNavSection] =
     useState("home");
+
+  const [mapLocationNotice, setMapLocationNotice] =
+    useState<string | null>(null);
 
   /**
    * LOAD CURRENT AUTHENTICATED USER
@@ -174,15 +178,16 @@ export default function Dashboard() {
       ? dbBuilding.floors
       : [];
 
-    return {
-      id:
-        dbBuilding?.id ??
-        `BLDG-${Date.now()}-${Math.random()}`,
+    const buildingId = String(dbBuilding?.id ?? "BLDG-DEFAULT");
 
-      name:
+    return {
+      id: buildingId,
+
+      name: String(
         dbBuilding?.name ??
         dbBuilding?.buildingName ??
-        "Cadastral Building",
+        "Cadastral Building"
+      ),
 
       ...(hasValidGeoreference
         ? {
@@ -194,7 +199,7 @@ export default function Dashboard() {
         : {}),
 
       floors: floors.map(
-        (floor: any) => ({
+        (floor: any, floorIdx: number) => ({
           floorNumber:
             Number(
               floor?.floorNumber
@@ -214,7 +219,7 @@ export default function Dashboard() {
             floor?.units
           )
             ? floor.units.map(
-                (unit: any) => {
+                (unit: any, unitIdx: number) => {
                   let polygon =
                     unit?.polygon;
 
@@ -233,14 +238,16 @@ export default function Dashboard() {
                   }
 
                   return {
-                    id:
+                    id: String(
                       unit?.id ??
-                      `UNIT-${Date.now()}-${Math.random()}`,
+                      `UNIT-${buildingId}-${floorIdx}-${unitIdx}`
+                    ),
 
-                    unitNumber:
+                    unitNumber: String(
                       unit?.unitNumber ??
                       unit?.id ??
-                      "UNIT",
+                      "UNIT"
+                    ),
 
                     floorNumber:
                       Number(
@@ -259,13 +266,12 @@ export default function Dashboard() {
                         ? polygon
                         : [],
 
-                    ulpin:
-                      unit?.ulpin ||
-                      undefined,
+                    ulpin: unit?.ulpin ? String(unit.ulpin) : undefined,
 
-                    spaceType:
+                    spaceType: String(
                       unit?.spaceType ??
-                      "RESIDENTIAL",
+                      "RESIDENTIAL"
+                    ),
                   };
                 }
               )
@@ -298,101 +304,125 @@ export default function Dashboard() {
         );
     }, [buildingList]);
 
-  /**
-   * LOAD DATABASE RECORDS
-   */
-  const loadDatabaseRecords =
-    async () => {
-      setLoadingDb(true);
+  const loadDatabaseRecords = async () => {
+    setLoadingDb(true);
 
-      try {
-        if (
-          roleMode ===
-          "PUBLIC_VIEWER"
-        ) {
-          const res =
-            await getPublicVerifiedBuildings();
-
-          if (
-            res.success &&
-            res.data
-          ) {
-            setBuildingList(
-              res.data
-            );
-            setBuilding(null);
-            setSelectedProperty(null);
-            setVerification(null);
-          } else {
-            setBuildingList([]);
-            setBuilding(null);
-            setSelectedProperty(null);
-          }
-          return;
+    try {
+      if (roleMode === "PUBLIC_VIEWER") {
+        const res = await getPublicVerifiedBuildings();
+        if (res.success && res.data) {
+          setBuildingList(res.data);
+          setBuilding(null);
+          setSelectedProperty(null);
+          setVerification(null);
+        } else {
+          setBuildingList([]);
+          setBuilding(null);
+          setSelectedProperty(null);
         }
-
-        if (
-          roleMode ===
-          "SURVEYOR"
-        ) {
-          if (
-            userRole !==
-            "SURVEYOR"
-          ) {
-            setRoleMode(
-              "PUBLIC_VIEWER"
-            );
-            return;
-          }
-
-          const res =
-            await getAllBuildings();
-
-          if (
-            res.success &&
-            res.data
-          ) {
-            setBuildingList(
-              res.data
-            );
-
-            if (
-              res.data.length > 0
-            ) {
-              setBuilding(
-                (current) => {
-                  if (current) {
-                    return current;
-                  }
-                  return mapDbToParsedBuilding(
-                    res.data[0]
-                  );
-                }
-              );
-            } else {
-              setBuilding(null);
-            }
-          } else {
-            setBuildingList([]);
-            setBuilding(null);
-          }
-          return;
-        }
-      } catch (error) {
-        console.error(
-          "Failed to load cadastral records:",
-          error
-        );
-      } finally {
-        setLoadingDb(false);
+        return;
       }
-    };
+
+      if (roleMode === "SURVEYOR") {
+        if (userRole !== "SURVEYOR") {
+          setRoleMode("PUBLIC_VIEWER");
+          return;
+        }
+
+        const res = await getAllBuildings();
+        if (res.success && res.data) {
+          setBuildingList(res.data);
+          if (res.data.length > 0) {
+            setBuilding((current) => {
+              if (current) return current;
+              return mapDbToParsedBuilding(res.data[0]);
+            });
+          } else {
+            setBuilding(null);
+          }
+        } else {
+          setBuildingList([]);
+          setBuilding(null);
+        }
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to load cadastral records:", error);
+    } finally {
+      setLoadingDb(false);
+    }
+  };
 
   useEffect(() => {
-    loadDatabaseRecords();
+    let isMounted = true;
+
+    if (isMounted) {
+      loadDatabaseRecords();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [roleMode, userRole]);
+
+  /**
+   * HANDLE DEEP LINK QUERY PARAMS (e.g. ?propertyId=... or ?buildingId=...)
+   */
+  useEffect(() => {
+    if (roleMode !== "PUBLIC_VIEWER" || loadingDb) return;
+
+    const queryPropertyId = searchParams?.get("propertyId") || searchParams?.get("ulpin");
+    const queryBuildingId = searchParams?.get("buildingId");
+
+    if (!queryPropertyId && !queryBuildingId) return;
+
+    queueMicrotask(() => {
+      if (publicMapBuildings.length === 0 && buildingList.length > 0) {
+        setMapLocationNotice("Map location is not available for this record.");
+        return;
+      }
+
+      if (publicMapBuildings.length > 0) {
+        let matchedBuilding: ParsedBuilding | undefined;
+        let matchedUnitId: string | null = null;
+
+        for (const b of publicMapBuildings) {
+          if (queryBuildingId && b.id === queryBuildingId) {
+            matchedBuilding = b;
+          }
+
+          if (queryPropertyId) {
+            for (const floor of b.floors ?? []) {
+              const unit = floor.units?.find(
+                (u) => u.id === queryPropertyId || u.ulpin === queryPropertyId
+              );
+              if (unit) {
+                matchedBuilding = b;
+                matchedUnitId = unit.id;
+                break;
+              }
+            }
+          }
+
+          if (matchedBuilding) break;
+        }
+
+        if (matchedBuilding) {
+          setBuilding(matchedBuilding);
+          if (matchedUnitId) {
+            setSelectedProperty(matchedUnitId);
+          }
+        } else if (buildingList.length > 0) {
+          setMapLocationNotice("Map location is not available for this record.");
+        }
+      }
+    });
   }, [
+    searchParams,
     roleMode,
-    userRole,
+    loadingDb,
+    publicMapBuildings,
+    buildingList,
   ]);
 
   const handlePublicBuildingSelect =
@@ -795,6 +825,18 @@ export default function Dashboard() {
                       Loading BhuVista cadastral registry...
                     </div>
                   )}
+                  {mapLocationNotice && (
+                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 rounded-full border border-amber-300 bg-amber-50 px-5 py-2 text-xs font-bold text-amber-800 shadow-lg backdrop-blur-md flex items-center gap-2">
+                      <span>⚠️ {mapLocationNotice}</span>
+                      <button
+                        type="button"
+                        onClick={() => setMapLocationNotice(null)}
+                        className="ml-2 font-bold hover:text-amber-950"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </section>
               ) : (
                 <div id="selected-building-view" className="flex flex-col gap-6 p-6">
@@ -876,5 +918,19 @@ export default function Dashboard() {
         </div>
       )}
     </PageShell>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#f8f5ee] text-[#2d6a4f] text-xs font-bold">
+          Loading BhuVista Viewer...
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

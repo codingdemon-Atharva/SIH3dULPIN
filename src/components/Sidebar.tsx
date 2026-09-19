@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -27,6 +28,26 @@ export function Sidebar({
   onSelectSection,
   roleMode,
 }: SidebarProps) {
+  const router = useRouter();
+
+  const handleItemClick = (itemId: string) => {
+    if (onSelectSection) {
+      onSelectSection(itemId);
+    }
+
+    if (itemId === "ulpin-registry") {
+      router.push("/ulpin-registry");
+    } else if (
+      itemId === "home" ||
+      itemId === "property-search" ||
+      itemId === "cadastral-map" ||
+      itemId === "3d-property-map" ||
+      itemId === "land-records"
+    ) {
+      router.push("/");
+    }
+  };
+
   const navGroups: NavGroup[] = [
     {
       title: "HOME",
@@ -177,7 +198,7 @@ export function Sidebar({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => onSelectSection && onSelectSection(item.id)}
+                    onClick={() => handleItemClick(item.id)}
                     title={!isOpen ? item.label : undefined}
                     className={`group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition cursor-pointer ${
                       isActive
