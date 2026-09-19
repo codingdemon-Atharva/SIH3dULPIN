@@ -1230,6 +1230,90 @@ export default function RealWorldMapViewer({
 
   /**
    * ----------------------------------------------------------
+   * SINGLE BUILDING BOUNDS
+   * ----------------------------------------------------------
+   */
+  const getSingleBuildingBounds = (
+    target: ParsedBuilding
+  ) => {
+    if (
+      !target.georeference
+    ) {
+      return null;
+    }
+
+    const anchor =
+      target.georeference;
+
+    const bounds =
+      new LngLatBounds();
+
+    bounds.extend([
+      anchor.longitude,
+      anchor.latitude,
+    ]);
+
+    for (const floor of
+      target.floors ??
+      []) {
+      for (const unit of
+        floor.units ??
+        []) {
+        const polygon =
+          Array.isArray(
+            unit.polygon
+          )
+            ? unit.polygon
+            : [];
+
+        if (
+          polygon.length <
+          3
+        ) {
+          continue;
+        }
+
+        const geographic =
+          isProbablyGeographic(
+            polygon as PointLike[],
+            anchor.longitude,
+            anchor.latitude
+          );
+
+        for (const point of polygon) {
+          const [
+            x,
+            y,
+          ] =
+            getXY(
+              point as PointLike
+            );
+
+          const coordinate =
+            geographic
+              ? [x, y]
+              : localToLngLat(
+                  x,
+                  y,
+                  anchor.longitude,
+                  anchor.latitude
+                );
+
+          bounds.extend(
+            coordinate as [
+              number,
+              number
+            ]
+          );
+        }
+      }
+    }
+
+    return bounds;
+  };
+
+  /**
+   * ----------------------------------------------------------
    * ADD BUILDING MARKERS
    * ----------------------------------------------------------
    *
@@ -1510,90 +1594,6 @@ export default function RealWorldMapViewer({
     multiBuildingMode,
     onBuildingSelect,
   ]);
-
-  /**
-   * ----------------------------------------------------------
-   * SINGLE BUILDING BOUNDS
-   * ----------------------------------------------------------
-   */
-  const getSingleBuildingBounds = (
-    target: ParsedBuilding
-  ) => {
-    if (
-      !target.georeference
-    ) {
-      return null;
-    }
-
-    const anchor =
-      target.georeference;
-
-    const bounds =
-      new LngLatBounds();
-
-    bounds.extend([
-      anchor.longitude,
-      anchor.latitude,
-    ]);
-
-    for (const floor of
-      target.floors ??
-      []) {
-      for (const unit of
-        floor.units ??
-        []) {
-        const polygon =
-          Array.isArray(
-            unit.polygon
-          )
-            ? unit.polygon
-            : [];
-
-        if (
-          polygon.length <
-          3
-        ) {
-          continue;
-        }
-
-        const geographic =
-          isProbablyGeographic(
-            polygon as PointLike[],
-            anchor.longitude,
-            anchor.latitude
-          );
-
-        for (const point of polygon) {
-          const [
-            x,
-            y,
-          ] =
-            getXY(
-              point as PointLike
-            );
-
-          const coordinate =
-            geographic
-              ? [x, y]
-              : localToLngLat(
-                  x,
-                  y,
-                  anchor.longitude,
-                  anchor.latitude
-                );
-
-          bounds.extend(
-            coordinate as [
-              number,
-              number
-            ]
-          );
-        }
-      }
-    }
-
-    return bounds;
-  };
 
   /**
    * ----------------------------------------------------------
