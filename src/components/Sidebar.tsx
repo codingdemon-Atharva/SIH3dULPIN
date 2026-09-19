@@ -37,12 +37,13 @@ export function Sidebar({
 
     if (itemId === "ulpin-registry") {
       router.push("/ulpin-registry");
+    } else if (itemId === "land-records") {
+      router.push("/land-records");
     } else if (
       itemId === "home" ||
       itemId === "property-search" ||
       itemId === "cadastral-map" ||
-      itemId === "3d-property-map" ||
-      itemId === "land-records"
+      itemId === "3d-property-map"
     ) {
       router.push("/");
     }
