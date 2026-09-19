@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { getPublicNotifications } from "@/src/app/actions/getPublicNotifications";
 
 interface AppHeaderProps {
   roleMode: "PUBLIC_VIEWER" | "SURVEYOR" | "UPLOADER";
@@ -20,8 +22,29 @@ export function AppHeader({
   const [lang, setLang] = useState<"EN" | "HI">("EN");
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isPublicViewer = roleMode === "PUBLIC_VIEWER";
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkNotifications() {
+      if (isPublicViewer) {
+        try {
+          const res = await getPublicNotifications();
+          if (isMounted && res.success) {
+            setUnreadCount(res.unreadCount || 0);
+          }
+        } catch {
+          if (isMounted) setUnreadCount(0);
+        }
+      }
+    }
+    checkNotifications();
+    return () => {
+      isMounted = false;
+    };
+  }, [isPublicViewer]);
 
   return (
     <header className="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b border-[#e2dad0] bg-[#fdfbf7] px-6 sm:px-8 text-[#162a21] shadow-sm relative">
@@ -128,48 +151,75 @@ export function AppHeader({
           <span>{lang === "EN" ? "English" : "हिंदी"}</span>
         </button>
 
-        {/* Notification Control (Shown only in non-public portal) */}
-        {!isPublicViewer && (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowNotifications(!showNotifications)}
-              aria-label="Notifications"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f3efe6] transition relative cursor-pointer shadow-sm"
+        {/* Notification Control (Shown in both modes, red dot only if unread exist) */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowNotifications(!showNotifications)}
+            aria-label="Notifications"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f3efe6] transition relative cursor-pointer shadow-sm"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-emerald-600"></span>
-            </button>
-
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[#e2dad0] bg-white p-3 text-xs text-[#162a21] shadow-xl z-50">
-                <p className="font-bold border-b border-[#e2dad0] pb-2 text-[#2d6a4f]">
-                  Notifications
-                </p>
-                <div className="py-2 space-y-2 text-[#3d5a4c]">
-                  <p>
-                    • Cadastral survey record updated for ULPIN registry.
-                  </p>
-                  <p>
-                    • System operating in 3D Volumetric Cadastre mode.
-                  </p>
-                </div>
-              </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              />
+            </svg>
+            {/* Red dot indicator strictly shown ONLY when unreadCount > 0 */}
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-600"></span>
             )}
-          </div>
-        )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[#e2dad0] bg-white p-3.5 text-xs text-[#162a21] shadow-xl z-50">
+              <div className="flex items-center justify-between border-b border-[#e2dad0] pb-2">
+                <p className="font-bold text-[#2d6a4f]">
+                  Public Notifications
+                </p>
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-bold text-red-800">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
+
+              {isPublicViewer ? (
+                <div className="py-3 text-[#3d5a4c] space-y-2 text-center">
+                  <p className="text-xs">No unread public notifications.</p>
+                  <Link
+                    href="/notifications"
+                    onClick={() => setShowNotifications(false)}
+                    className="inline-block text-[11px] font-bold text-[#2d6a4f] hover:underline"
+                  >
+                    View All Notifications →
+                  </Link>
+                </div>
+              ) : (
+                <div className="py-2 space-y-2 text-[#3d5a4c]">
+                  <p>• Cadastral survey record updated for ULPIN registry.</p>
+                  <p>• System operating in 3D Volumetric Cadastre mode.</p>
+                  <div className="pt-1 border-t border-[#e2dad0]/60">
+                    <Link
+                      href="/notifications"
+                      onClick={() => setShowNotifications(false)}
+                      className="inline-block text-[11px] font-bold text-[#2d6a4f] hover:underline"
+                    >
+                      Open Public Notices →
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Profile / Account Control */}
         <div className="relative">

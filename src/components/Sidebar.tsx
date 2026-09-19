@@ -41,6 +41,10 @@ export function Sidebar({
       router.push("/land-records");
     } else if (itemId === "downloads") {
       router.push("/downloads");
+    } else if (itemId === "notifications") {
+      router.push("/notifications");
+    } else if (itemId === "help-support") {
+      router.push("/help-support");
     } else if (
       itemId === "home" ||
       itemId === "property-search" ||
