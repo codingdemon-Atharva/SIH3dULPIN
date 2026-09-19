@@ -5,77 +5,33 @@
 ▲ Next.js 16.3.4 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 569ms
-✓ Running next.config took 16ms
+✓ Ready in 531ms
+✓ Running next.config took 15ms
 
-○ Compiling / ...
- HEAD / 200 in 5.7s (next.js: 4.6s, proxy.ts: 254ms, application-code: 925ms)
- GET / 200 in 85ms (next.js: 13ms, proxy.ts: 9ms, application-code: 63ms)
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
-
-  370 ;
-  371 async function getPublicVerifiedBuildings() {
-  372     try {
-→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
-
-Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
-
-  370 ;
-  371 async function getPublicVerifiedBuildings() {
-  372     try {
-→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
-
-    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
-    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
-   5 | export async function getPublicVerifiedBuildings() {
-   6 |   try {
->  7 |     const verifiedBuildings = await prisma.building.findMany({
-     |                                                     ^
-   8 |       where: {
-   9 |         approvalStatus: "APPROVED", // Strict verification filter
-  10 |       }, {
-  code: 'ECONNREFUSED',
-  meta: { modelName: 'Building' },
-  clientVersion: '7.10.0'
-}
- GET /api/auth/me 401 in 2.1s (next.js: 1980ms, application-code: 78ms)
- POST / 200 in 1986ms (next.js: 26ms, proxy.ts: 43ms, application-code: 1918ms)
-  └─ ƒ getPublicVerifiedBuildings() in 1441ms src/actions/getPublicBuildings.ts
- GET /api/auth/me 401 in 14ms (next.js: 6ms, application-code: 8ms)
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
-
-  370 ;
-  371 async function getPublicVerifiedBuildings() {
-  372     try {
-→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
-
-Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_0-8xyt0._.js:373:177
-
-  370 ;
-  371 async function getPublicVerifiedBuildings() {
-  372     try {
-→ 373         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
-
-    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
-    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
-   5 | export async function getPublicVerifiedBuildings() {
-   6 |   try {
->  7 |     const verifiedBuildings = await prisma.building.findMany({
-     |                                                     ^
-   8 |       where: {
-   9 |         approvalStatus: "APPROVED", // Strict verification filter
-  10 |       }, {
-  code: 'ECONNREFUSED',
-  meta: { modelName: 'Building' },
-  clientVersion: '7.10.0'
-}
- POST / 200 in 63ms (next.js: 11ms, proxy.ts: 18ms, application-code: 34ms)
-  └─ ƒ getPublicVerifiedBuildings() in 16ms src/actions/getPublicBuildings.ts
+ HEAD /ulpin-registry 200 in 3.2s (next.js: 2.7s, proxy.ts: 277ms, application-code: 294ms)
+ HEAD / 200 in 3.1s (next.js: 2.7s, proxy.ts: 8ms, application-code: 418ms)
+ HEAD /properties/test 200 in 1228ms (next.js: 1041ms, proxy.ts: 7ms, application-code: 180ms)
+ GET / 200 in 84ms (next.js: 17ms, proxy.ts: 12ms, application-code: 55ms)
+prisma:query SELECT "public"."Building"."id", "public"."Building"."name", "public"."Building"."latitude", "public"."Building"."longitude", "public"."Building"."approvalStatus"::text, "public"."Building"."surveyorId", "public"."Building"."verifiedAt", "public"."Building"."createdAt", "public"."Building"."updatedAt" FROM "public"."Building" WHERE "public"."Building"."approvalStatus" = CAST($1::text AS "public"."ApprovalStatus") OFFSET $2
+prisma:query SELECT "public"."Floor"."id", "public"."Floor"."buildingId", "public"."Floor"."floorNumber", "public"."Floor"."elevation", "public"."Floor"."height" FROM "public"."Floor" WHERE "public"."Floor"."buildingId" IN (NULL) ORDER BY "public"."Floor"."floorNumber" ASC OFFSET $1
+prisma:query SELECT "public"."Property"."id", "public"."Property"."floorId", "public"."Property"."unitNumber", "public"."Property"."ulpin", "public"."Property"."area", "public"."Property"."spaceType", "public"."Property"."polygon", "public"."Property"."createdAt" FROM "public"."Property" WHERE "public"."Property"."floorId" IN (NULL) OFFSET $1
+ POST / 200 in 724ms (next.js: 25ms, proxy.ts: 27ms, application-code: 672ms)
+  └─ ƒ getPublicVerifiedBuildings() in 462ms src/actions/getPublicBuildings.ts
+ GET /api/auth/me 401 in 1247ms (next.js: 1058ms, application-code: 189ms)
+prisma:query SELECT "public"."Building"."id", "public"."Building"."name", "public"."Building"."latitude", "public"."Building"."longitude", "public"."Building"."approvalStatus"::text, "public"."Building"."surveyorId", "public"."Building"."verifiedAt", "public"."Building"."createdAt", "public"."Building"."updatedAt" FROM "public"."Building" WHERE "public"."Building"."approvalStatus" = CAST($1::text AS "public"."ApprovalStatus") OFFSET $2
+prisma:query SELECT "public"."Floor"."id", "public"."Floor"."buildingId", "public"."Floor"."floorNumber", "public"."Floor"."elevation", "public"."Floor"."height" FROM "public"."Floor" WHERE "public"."Floor"."buildingId" IN (NULL) ORDER BY "public"."Floor"."floorNumber" ASC OFFSET $1
+prisma:query SELECT "public"."Property"."id", "public"."Property"."floorId", "public"."Property"."unitNumber", "public"."Property"."ulpin", "public"."Property"."area", "public"."Property"."spaceType", "public"."Property"."polygon", "public"."Property"."createdAt" FROM "public"."Property" WHERE "public"."Property"."floorId" IN (NULL) OFFSET $1
+ GET /api/auth/me 401 in 59ms (next.js: 31ms, application-code: 28ms)
+ POST / 200 in 526ms (next.js: 17ms, proxy.ts: 24ms, application-code: 484ms)
+  └─ ƒ getPublicVerifiedBuildings() in 416ms src/actions/getPublicBuildings.ts
+ GET /ulpin-registry 200 in 76ms (next.js: 28ms, proxy.ts: 19ms, application-code: 30ms)
+prisma:query SELECT "public"."Building"."id", "public"."Building"."name", "public"."Building"."latitude", "public"."Building"."longitude", "public"."Building"."approvalStatus"::text, "public"."Building"."surveyorId", "public"."Building"."verifiedAt", "public"."Building"."createdAt", "public"."Building"."updatedAt" FROM "public"."Building" WHERE "public"."Building"."approvalStatus" = CAST($1::text AS "public"."ApprovalStatus") ORDER BY "public"."Building"."createdAt" DESC OFFSET $2
+prisma:query SELECT "public"."Floor"."id", "public"."Floor"."buildingId", "public"."Floor"."floorNumber", "public"."Floor"."elevation", "public"."Floor"."height" FROM "public"."Floor" WHERE "public"."Floor"."buildingId" IN (NULL) ORDER BY "public"."Floor"."floorNumber" ASC OFFSET $1
+prisma:query SELECT "public"."Property"."id", "public"."Property"."floorId", "public"."Property"."unitNumber", "public"."Property"."ulpin", "public"."Property"."area", "public"."Property"."spaceType", "public"."Property"."polygon", "public"."Property"."createdAt" FROM "public"."Property" WHERE "public"."Property"."floorId" IN (NULL) OFFSET $1
+ POST /ulpin-registry 200 in 44ms (next.js: 5ms, proxy.ts: 12ms, application-code: 28ms)
+  └─ ƒ getPublicRegistryRecords() in 16ms src/actions/getPublicBuildings.ts
+prisma:query SELECT "public"."Building"."id", "public"."Building"."name", "public"."Building"."latitude", "public"."Building"."longitude", "public"."Building"."approvalStatus"::text, "public"."Building"."surveyorId", "public"."Building"."verifiedAt", "public"."Building"."createdAt", "public"."Building"."updatedAt" FROM "public"."Building" WHERE "public"."Building"."approvalStatus" = CAST($1::text AS "public"."ApprovalStatus") ORDER BY "public"."Building"."createdAt" DESC OFFSET $2
+prisma:query SELECT "public"."Floor"."id", "public"."Floor"."buildingId", "public"."Floor"."floorNumber", "public"."Floor"."elevation", "public"."Floor"."height" FROM "public"."Floor" WHERE "public"."Floor"."buildingId" IN (NULL) ORDER BY "public"."Floor"."floorNumber" ASC OFFSET $1
+prisma:query SELECT "public"."Property"."id", "public"."Property"."floorId", "public"."Property"."unitNumber", "public"."Property"."ulpin", "public"."Property"."area", "public"."Property"."spaceType", "public"."Property"."polygon", "public"."Property"."createdAt" FROM "public"."Property" WHERE "public"."Property"."floorId" IN (NULL) OFFSET $1
+ POST /ulpin-registry 200 in 62ms (next.js: 8ms, proxy.ts: 8ms, application-code: 45ms)
+  └─ ƒ getPublicRegistryRecords() in 11ms src/actions/getPublicBuildings.ts

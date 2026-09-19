@@ -56,7 +56,7 @@ export default function PropertyInspectionPage() {
           if (isMounted && res.success && res.building && res.unit) {
             const parsed = mapServerToParsedBuilding(res.building);
             setBuilding(parsed);
-            setProperty(res.unit);
+            setProperty(res.unit as unknown as Property2D);
             setLoading(false);
             return;
           }

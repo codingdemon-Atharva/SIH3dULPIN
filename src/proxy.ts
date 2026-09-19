@@ -8,7 +8,8 @@ export async function proxy(request: NextRequest) {
   if (!sessionToken) {
     if (
       request.nextUrl.pathname === "/" ||
-      request.nextUrl.pathname.startsWith("/properties/")
+      request.nextUrl.pathname.startsWith("/properties/") ||
+      request.nextUrl.pathname.startsWith("/ulpin-registry")
     ) {
       return NextResponse.next();
     }
@@ -20,7 +21,8 @@ export async function proxy(request: NextRequest) {
   if (
     !user &&
     request.nextUrl.pathname !== "/" &&
-    !request.nextUrl.pathname.startsWith("/properties/")
+    !request.nextUrl.pathname.startsWith("/properties/") &&
+    !request.nextUrl.pathname.startsWith("/ulpin-registry")
   ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
