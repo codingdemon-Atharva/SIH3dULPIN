@@ -26,7 +26,7 @@ export function AppHeader({
   return (
     <header className="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b border-[#e2dad0] bg-[#fdfbf7] px-6 sm:px-8 text-[#162a21] shadow-sm relative">
       {/* LEFT SECTION: Ministry of Rural Development Logo */}
-      <div className="flex items-center gap-4 min-w-[200px] z-10">
+      <div className="flex items-center gap-4 min-w-[220px] z-10">
         {!isPublicViewer && onToggleSidebar && (
           <button
             type="button"
@@ -58,26 +58,23 @@ export function AppHeader({
           <img
             src="/mord-logo.png"
             alt="Ministry of Rural Development - Government of India"
-            className="h-11 w-auto max-w-[180px] object-contain"
+            className="h-13 w-auto max-w-[220px] object-contain"
           />
         </div>
       </div>
 
-      {/* CENTER SECTION: BhuVista Logo & Subtitle (Visually centered relative to full width) */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-auto">
-        <div className="flex items-center gap-2.5">
+      {/* CENTER SECTION: BhuVista Logo (Visually centered relative to full width) */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center text-center pointer-events-auto">
+        <div className="flex items-center gap-3">
           <img
             src="/bhuvista-logo.png"
             alt="BhuVista Logo"
-            className="h-8 w-auto object-contain"
+            className="h-11 w-auto object-contain"
           />
-          <span className="text-2xl font-black tracking-tight text-[#162a21] font-sans">
+          <span className="text-3xl font-black tracking-tight text-[#162a21] font-sans">
             BhuVista
           </span>
         </div>
-        <span className="text-[10px] font-bold tracking-widest text-[#2d6a4f] uppercase mt-0.5">
-          3D LAND INTELLIGENCE PLATFORM
-        </span>
       </div>
 
       {/* RIGHT SECTION: Controls */}
