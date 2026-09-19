@@ -1876,7 +1876,7 @@ export default function RealWorldMapViewer({
   return (
     <div className="relative w-full h-full min-h-[600px] overflow-hidden bg-[#d1e3d4]">
       {/* MAP CANVAS */}
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="w-full h-full min-h-[600px]" />
 
       {/* ---------------------------------------------------- */}
       {/* FLOATING SEARCH BAR (TOP-LEFT) */}
