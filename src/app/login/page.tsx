@@ -40,7 +40,14 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      if (
+        data.user?.role === "GOVERNMENT_OFFICER" ||
+        data.user?.role === "GOVERNMENT_ADMIN"
+      ) {
+        router.push("/government/dashboard");
+      } else {
+        router.push("/");
+      }
       router.refresh();
     } catch {
       setError("Unable to connect to the server.");
@@ -335,27 +342,16 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Surveyor notice & Government Official Link */}
+            {/* Surveyor notice */}
             <div className="mt-6 border-t border-[#e2dad0] pt-6 space-y-3">
               <div className="rounded-xl bg-[#f0ebe1] px-4 py-3.5 border border-[#e2dad0]">
                 <p className="text-xs font-semibold text-[#162a21]">
-                  Government Surveyor Credentialing
+                  Government Surveyor & Official Credentialing
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-[#3d5a4c]">
-                  Cadastral surveyor accounts are issued by authorized government department administrators.
+                  Authorized surveyor and government officer accounts are issued by department administrators.
                 </p>
-              </div>
-
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => router.push("/government/login")}
-                  className="text-xs font-bold text-[#2d6a4f] hover:underline inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <span>🏛️</span>
-                  <span>Government Official Portal Sign In →</span>
-                </button>
               </div>
             </div>
 
