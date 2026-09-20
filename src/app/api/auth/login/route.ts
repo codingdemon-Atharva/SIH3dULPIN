@@ -2,9 +2,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/src/lib/prisma";
-import { createSession } from "@/src/lib/auth";
-
-type LoginRole = "VIEWER" | "SURVEYOR";
+import { createSession, UserRoleType } from "@/src/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +10,7 @@ export async function POST(request: Request) {
 
     const email = body.email?.trim().toLowerCase();
     const password = body.password;
-    const requestedRole = body.role as LoginRole;
+    const requestedRole = body.role as UserRoleType;
 
     if (!email || !password || !requestedRole) {
       return NextResponse.json(
@@ -24,7 +22,14 @@ export async function POST(request: Request) {
       );
     }
 
-    if (requestedRole !== "VIEWER" && requestedRole !== "SURVEYOR") {
+    const validRoles: UserRoleType[] = [
+      "VIEWER",
+      "SURVEYOR",
+      "GOVERNMENT_OFFICER",
+      "GOVERNMENT_ADMIN",
+    ];
+
+    if (!validRoles.includes(requestedRole)) {
       return NextResponse.json(
         {
           success: false,

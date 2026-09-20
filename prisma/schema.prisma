@@ -64,4 +64,6 @@ enum ApprovalStatus {
 enum UserRole {
   VIEWER
   SURVEYOR
+  GOVERNMENT_OFFICER
+  GOVERNMENT_ADMIN
 }
