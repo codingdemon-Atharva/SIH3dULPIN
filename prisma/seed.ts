@@ -39,6 +39,31 @@ async function main() {
   console.log("Surveyor account created/updated:");
   console.log(`Email: ${surveyor.email}`);
   console.log(`Role: ${surveyor.role}`);
+
+  const govPasswordHash = await bcrypt.hash("Government@123", 12);
+
+  const govAdmin = await prisma.user.upsert({
+    where: {
+      email: "gov.admin@ulpin.gov",
+    },
+
+    update: {
+      name: "Government Administrator",
+      passwordHash: govPasswordHash,
+      role: "GOVERNMENT_ADMIN",
+    },
+
+    create: {
+      name: "Government Administrator",
+      email: "gov.admin@ulpin.gov",
+      passwordHash: govPasswordHash,
+      role: "GOVERNMENT_ADMIN",
+    },
+  });
+
+  console.log("Government Administrator account created/updated:");
+  console.log(`Email: ${govAdmin.email}`);
+  console.log(`Role: ${govAdmin.role}`);
 }
 
 main()

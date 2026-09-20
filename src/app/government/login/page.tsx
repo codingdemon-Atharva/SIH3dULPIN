@@ -1,17 +1,26 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
-type LoginRole = "VIEWER" | "SURVEYOR";
+import { FormEvent, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { UserRoleType } from "@/src/lib/auth";
 
-export default function LoginPage() {
+type GovernmentLoginRole = "GOVERNMENT_OFFICER" | "GOVERNMENT_ADMIN";
+
+function GovernmentLoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [loginRole, setLoginRole] = useState<LoginRole>("VIEWER");
+  const [loginRole, setLoginRole] =
+    useState<GovernmentLoginRole>("GOVERNMENT_ADMIN");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    searchParams?.get("error") === "unauthorized"
+      ? "Government authorization required to access this portal."
+      : ""
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -36,14 +45,14 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Login failed.");
+        setError(data.error || "Government authentication failed.");
         return;
       }
 
-      router.push("/");
+      router.push("/government/dashboard");
       router.refresh();
     } catch {
-      setError("Unable to connect to the server.");
+      setError("Unable to connect to government authentication server.");
     } finally {
       setLoading(false);
     }
@@ -52,10 +61,8 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#081a12] flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid lg:grid-cols-[1.15fr_0.85fr]">
-
-        {/* LEFT — 3D GIS Visual */}
-        <section className="relative hidden min-h-[720px] overflow-hidden bg-[#0f2d21] lg:block">
-
+        {/* LEFT — Government Portal Visual */}
+        <section className="relative hidden min-h-[720px] overflow-hidden bg-[#0a2318] lg:block">
           {/* Grid */}
           <div
             className="absolute inset-0 opacity-20"
@@ -68,10 +75,9 @@ export default function LoginPage() {
 
           {/* Glow */}
           <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl" />
-          <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
+          <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-amber-500/15 blur-3xl" />
 
           <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
-
             {/* Brand */}
             <div>
               <div className="flex items-center gap-3">
@@ -90,56 +96,20 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Building Illustration */}
+            {/* Emblem / Shield Graphic */}
             <div className="relative flex flex-1 items-center justify-center">
-
-              <div className="relative mt-8 h-[360px] w-[300px]">
-
-                {/* Ground plane */}
-                <div className="absolute bottom-4 left-1/2 h-20 w-72 -translate-x-1/2 rotate-[-8deg] rounded-xl border border-emerald-400/20 bg-emerald-400/5" />
-
-                {/* Building */}
-                <div className="absolute bottom-16 left-1/2 h-[280px] w-48 -translate-x-1/2 rounded-sm border border-emerald-300/30 bg-[#1b4332]/90 shadow-[0_0_50px_rgba(45,106,79,0.2)]">
-
-                  {/* Floors */}
-                  {[0, 1, 2, 3, 4, 5].map((floor) => (
-                    <div
-                      key={floor}
-                      className="absolute left-0 right-0 border-t border-emerald-400/25"
-                      style={{
-                        bottom: `${floor * 16.66}%`,
-                      }}
-                    >
-                      <div className="absolute -left-12 -top-2 text-[9px] text-emerald-300/80">
-                        F{floor + 1}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Windows */}
-                  <div className="grid h-full grid-cols-3 gap-3 p-5">
-                    {Array.from({ length: 18 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="rounded-sm border border-amber-300/10 bg-amber-300/5"
-                      />
-                    ))}
-                  </div>
-
-                  {/* Vertical parcel line */}
-                  <div className="absolute -right-12 top-0 h-full border-r border-dashed border-emerald-400/40" />
+              <div className="relative flex flex-col items-center justify-center rounded-2xl border border-amber-400/30 bg-[#163a2b]/80 p-8 shadow-2xl backdrop-blur-md max-w-sm text-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#2d6a4f] text-3xl shadow-lg border border-emerald-300/30">
+                  🏛️
                 </div>
-
-                {/* Elevation marker */}
-                <div className="absolute right-0 top-10 text-[10px] text-emerald-200">
-                  +18.40 m
-                </div>
-
-                {/* Coordinate markers */}
-                <div className="absolute bottom-0 left-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[9px] text-emerald-100 backdrop-blur">
-                  18.4418° N
-                  <br />
-                  73.8317° E
+                <h3 className="mt-4 text-xl font-extrabold text-white">
+                  Government Portal Access
+                </h3>
+                <p className="mt-2 text-xs leading-5 text-[#b7e4c7]">
+                  National Cadastral Governance & High-Precision 3D Land Record Management System
+                </p>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-400/10 px-3 py-1 text-[10px] font-bold text-amber-300 border border-amber-400/20">
+                  🔒 Restricted Official Domain
                 </div>
               </div>
             </div>
@@ -151,22 +121,20 @@ export default function LoginPage() {
               </p>
 
               <h2 className="text-3xl font-semibold leading-tight text-white xl:text-4xl">
-                Visualize property in
-                <span className="text-[#52b788]"> three dimensions.</span>
+                Government Cadastral
+                <span className="text-[#52b788]"> Governance Portal.</span>
               </h2>
 
               <p className="mt-3 max-w-md text-sm leading-6 text-[#a8c3b5]">
-                Government-grade cadastral governance platform for visualizing buildings, vertical parcels, floors, and 3D land records.
+                Secure administrative entry point for department administrators, land officers, and cadastral authorities.
               </p>
             </div>
           </div>
         </section>
 
-        {/* RIGHT — Login */}
+        {/* RIGHT — Government Login Form */}
         <section className="flex min-h-[720px] items-center justify-center bg-[#fdfbf7] px-6 py-12 sm:px-12">
-
           <div className="w-full max-w-md">
-
             {/* Mobile branding */}
             <div className="mb-8 lg:hidden">
               <div className="flex items-center gap-3">
@@ -185,81 +153,80 @@ export default function LoginPage() {
 
             {/* Heading */}
             <div className="mb-8">
-              <p className="mb-1 text-xs font-semibold text-[#1b4332] uppercase tracking-wider">
-                Portal Access
+              <p className="mb-1 text-xs font-extrabold text-[#2d6a4f] uppercase tracking-wider flex items-center gap-1.5">
+                <span>🏛️</span> Official Governance Portal
               </p>
 
               <h1 className="text-3xl font-bold tracking-tight text-[#162a21]">
-                Sign in to BhuVista
+                Government Sign In
               </h1>
 
               <p className="mt-2 text-sm leading-6 text-[#3d5a4c]">
-                Access the national 3D land intelligence & cadastral registry.
+                Sign in with authorized government official credentials.
               </p>
             </div>
 
-            {/* Login Role Toggle */}
+            {/* Role Toggle */}
             <div className="mb-6">
               <p className="mb-2 text-sm font-medium text-slate-700">
-                Sign in as
+                Official Authorization Level
               </p>
 
               <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#f0ebe1] p-1 border border-[#e2dad0]">
                 <button
                   type="button"
                   onClick={() => {
-                    setLoginRole("VIEWER");
+                    setLoginRole("GOVERNMENT_ADMIN");
                     setError("");
                   }}
-                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                    loginRole === "VIEWER"
-                      ? "bg-white text-[#1b4332] shadow-sm"
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition cursor-pointer ${
+                    loginRole === "GOVERNMENT_ADMIN"
+                      ? "bg-[#1b4332] text-white shadow-sm"
                       : "text-[#6b887a] hover:text-[#162a21]"
                   }`}
                 >
-                  Viewer
+                  Gov Administrator
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
-                    setLoginRole("SURVEYOR");
+                    setLoginRole("GOVERNMENT_OFFICER");
                     setError("");
                   }}
-                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                    loginRole === "SURVEYOR"
-                      ? "bg-white text-[#1b4332] shadow-sm"
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition cursor-pointer ${
+                    loginRole === "GOVERNMENT_OFFICER"
+                      ? "bg-[#1b4332] text-white shadow-sm"
                       : "text-[#6b887a] hover:text-[#162a21]"
                   }`}
                 >
-                  Surveyor
+                  Gov Officer
                 </button>
               </div>
 
               <p className="mt-2 text-xs text-[#6b887a]">
-                {loginRole === "VIEWER"
-                  ? "For registered public & agency users."
-                  : "For authorized government cadastral surveyors."}
+                {loginRole === "GOVERNMENT_ADMIN"
+                  ? "Full administrative access to national cadastral settings."
+                  : "Authorized government officer portal for land records."}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-
               {/* Email */}
               <div>
                 <label
-                  htmlFor="email"
+                  htmlFor="gov-email"
                   className="mb-2 block text-sm font-medium text-[#162a21]"
                 >
-                  Email address
+                  Government Official Email
                 </label>
 
                 <input
-                  id="email"
+                  id="gov-email"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="official@domain.gov.in"
+                  placeholder="gov.admin@ulpin.gov"
                   required
                   autoComplete="email"
                   className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-3 text-sm text-[#162a21] outline-none transition placeholder:text-slate-400 focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
@@ -270,27 +237,20 @@ export default function LoginPage() {
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label
-                    htmlFor="password"
+                    htmlFor="gov-password"
                     className="block text-sm font-medium text-[#162a21]"
                   >
-                    Password
+                    Official Password
                   </label>
-
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-[#1b4332] hover:underline"
-                  >
-                    Forgot password?
-                  </button>
                 </div>
 
                 <div className="relative">
                   <input
-                    id="password"
+                    id="gov-password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Enter your password"
+                    placeholder="Enter official password"
                     required
                     autoComplete="current-password"
                     className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-3 pr-20 text-sm text-[#162a21] outline-none transition placeholder:text-slate-400 focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
@@ -306,66 +266,57 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Error */}
+              {/* Error Notice */}
               {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700">
+                  ⚠️ {error}
                 </div>
               )}
 
-              {/* Button */}
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#1b4332] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f2d21] focus:outline-none focus:ring-4 focus:ring-[#d8f3dc] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl bg-[#1b4332] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f2d21] focus:outline-none focus:ring-4 focus:ring-[#d8f3dc] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
               >
-                {loading ? "Authenticating..." : "Sign in"}
+                {loading ? "Authenticating Official..." : "Sign In to Government Portal"}
               </button>
             </form>
 
-            {/* Signup */}
+            {/* Back to Public Portal */}
             <div className="mt-8 text-center text-sm text-[#6b887a]">
-              Don't have an account?{" "}
-              <button
-                type="button"
-                onClick={() => router.push("/signup")}
+              Public citizen or surveyor?{" "}
+              <Link
+                href="/login"
                 className="font-semibold text-[#1b4332] hover:underline"
               >
-                Register viewer account
-              </button>
+                Go to Public Sign In
+              </Link>
             </div>
 
-            {/* Surveyor notice & Government Official Link */}
-            <div className="mt-6 border-t border-[#e2dad0] pt-6 space-y-3">
-              <div className="rounded-xl bg-[#f0ebe1] px-4 py-3.5 border border-[#e2dad0]">
-                <p className="text-xs font-semibold text-[#162a21]">
-                  Government Surveyor Credentialing
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-[#3d5a4c]">
-                  Cadastral surveyor accounts are issued by authorized government department administrators.
-                </p>
-              </div>
-
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => router.push("/government/login")}
-                  className="text-xs font-bold text-[#2d6a4f] hover:underline inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <span>🏛️</span>
-                  <span>Government Official Portal Sign In →</span>
-                </button>
-              </div>
+            {/* Footer Notice */}
+            <div className="mt-6 border-t border-[#e2dad0] pt-6 text-center">
+              <p className="text-[11px] text-[#6b887a]">
+                BhuVista • Government of India 3D Land Intelligence Platform
+              </p>
             </div>
-
-            <p className="mt-6 text-center text-[11px] text-[#6b887a]">
-              BhuVista • Government of India 3D Land Intelligence Platform
-            </p>
-
           </div>
         </section>
       </div>
     </main>
+  );
+}
+
+export default function GovernmentLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#081a12] text-white text-xs font-bold">
+          Loading Government Portal...
+        </div>
+      }
+    >
+      <GovernmentLoginFormContent />
+    </Suspense>
   );
 }
