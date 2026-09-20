@@ -193,7 +193,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
 
         <div className="flex items-center gap-3">
           <img
-            src="/bhuvista-logo.png"
+            src="/bhuvista-logo-official-new.png"
             alt="BhuVista Logo"
             className="h-11 sm:h-12 w-auto object-contain max-h-[52px]"
           />

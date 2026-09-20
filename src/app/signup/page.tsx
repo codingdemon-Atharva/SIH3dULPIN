@@ -61,7 +61,7 @@ export default function SignupPage() {
         {/* Branding */}
         <div className="text-center mb-8 flex flex-col items-center justify-center">
           <img
-            src="/bhuvista-logo.png"
+            src="/bhuvista-logo-official-new.png"
             alt="BhuVista Logo"
             className="h-16 w-auto object-contain mb-3 drop-shadow-md"
           />
