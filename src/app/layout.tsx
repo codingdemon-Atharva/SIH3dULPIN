@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     "Government-grade 3D Land Intelligence & Volumetric Cadastral Mapping Platform.",
 };
 
+import { LanguageProvider } from "@/src/context/LanguageContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -14,7 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }
