@@ -111,138 +111,16 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col justify-between overflow-x-hidden bg-[#eef5f1] text-[#122e23] selection:bg-[#1b6a4a] selection:text-white font-sans">
-      {/* RICH LIGHT ATMOSPHERIC LANDSCAPE BACKGROUND (Matching Reference 2) */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Soft sky gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#e3f2fd]/60 via-[#f1f8f5] to-[#e4f0ea]" />
-
-        {/* Soft distant clouds and sunlight radial blur */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-radial from-white via-white/40 to-transparent opacity-80 blur-2xl" />
-
-        {/* SVG City Skyline & Agricultural Cadastral Landscape */}
-        <div className="absolute bottom-0 inset-x-0 h-full w-full max-h-[620px] opacity-85">
-          <svg
-            className="h-full w-full"
-            viewBox="0 0 1440 600"
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              {/* Sky to horizon gradient */}
-              <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#e8f4f0" stopOpacity="0" />
-                <stop offset="100%" stopColor="#d2e8de" stopOpacity="0.5" />
-              </linearGradient>
-
-              {/* Mountain gradient */}
-              <linearGradient id="mountainGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#b1cdc0" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#87a898" stopOpacity="0.6" />
-              </linearGradient>
-
-              {/* Distant building silhouette */}
-              <linearGradient id="bldgGradFar" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#9cb5aa" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#7a978a" stopOpacity="0.7" />
-              </linearGradient>
-
-              {/* Midground building silhouette */}
-              <linearGradient id="bldgGradMid" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#819e91" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="#5d7b6e" stopOpacity="0.8" />
-              </linearGradient>
-
-              {/* Foreground landscape field gradient */}
-              <linearGradient id="fieldGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#c2e2d3" stopOpacity="0.7" />
-                <stop offset="100%" stopColor="#a3cbba" stopOpacity="0.9" />
-              </linearGradient>
-            </defs>
-
-            {/* Distant Mountain Range */}
-            <path
-              d="M0,380 Q180,320 360,350 T720,330 T1080,340 T1440,370 L1440,600 L0,600 Z"
-              fill="url(#mountainGrad)"
-            />
-
-            {/* Left Skyline Group (Towers, Skyscrapers, Spire) */}
-            <g fill="url(#bldgGradFar)">
-              {/* Left far towers */}
-              <rect x="40" y="220" width="38" height="180" rx="2" />
-              <rect x="85" y="260" width="30" height="140" rx="1" />
-              <rect x="120" y="180" width="45" height="220" rx="3" />
-              <polygon points="142.5,140 135,180 150,180" />
-              <rect x="172" y="240" width="35" height="160" rx="2" />
-              <rect x="215" y="210" width="50" height="190" rx="3" />
-              <rect x="272" y="280" width="40" height="120" rx="2" />
-              <rect x="320" y="250" width="32" height="150" rx="2" />
-            </g>
-
-            {/* Right Skyline Group (Modern Commercial District) */}
-            <g fill="url(#bldgGradFar)">
-              <rect x="1080" y="260" width="35" height="140" rx="2" />
-              <rect x="1122" y="210" width="42" height="190" rx="3" />
-              <rect x="1170" y="290" width="38" height="110" rx="2" />
-              <rect x="1215" y="170" width="48" height="230" rx="4" />
-              <polygon points="1239,120 1230,170 1248,170" />
-              <rect x="1270" y="230" width="40" height="170" rx="2" />
-              <rect x="1318" y="250" width="55" height="150" rx="3" />
-              <rect x="1380" y="220" width="35" height="180" rx="2" />
-            </g>
-
-            {/* Midground Building Details (Left & Right framing) */}
-            <g fill="url(#bldgGradMid)">
-              <rect x="60" y="280" width="42" height="120" rx="2" />
-              <rect x="140" y="230" width="36" height="170" rx="2" />
-              <rect x="240" y="260" width="45" height="140" rx="2" />
-
-              <rect x="1140" y="250" width="38" height="150" rx="2" />
-              <rect x="1235" y="220" width="42" height="180" rx="2" />
-              <rect x="1330" y="280" width="40" height="120" rx="2" />
-            </g>
-
-            {/* Foreground Agricultural Cadastral Fields & Land Parcels */}
-            <path
-              d="M0,380 L1440,380 L1440,600 L0,600 Z"
-              fill="url(#fieldGrad)"
-            />
-
-            {/* Perspective Cadastral Parcel Lines (Land Intelligence visual motif) */}
-            <g stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.45" strokeDasharray="6,4">
-              <line x1="100" y1="380" x2="-100" y2="600" />
-              <line x1="300" y1="380" x2="100" y2="600" />
-              <line x1="500" y1="380" x2="400" y2="600" />
-              <line x1="720" y1="380" x2="720" y2="600" />
-              <line x1="940" y1="380" x2="1040" y2="600" />
-              <line x1="1140" y1="380" x2="1340" y2="600" />
-              <line x1="1340" y1="380" x2="1580" y2="600" />
-
-              {/* Horizontal terrace / parcel boundary lines */}
-              <line x1="0" y1="420" x2="1440" y2="420" />
-              <line x1="0" y1="470" x2="1440" y2="470" />
-              <line x1="0" y1="530" x2="1440" y2="530" />
-            </g>
-
-            {/* Trees & Greenery along horizon */}
-            <g fill="#5d8574" opacity="0.7">
-              <circle cx="380" cy="380" r="14" />
-              <circle cx="400" cy="382" r="11" />
-              <circle cx="420" cy="379" r="16" />
-              <circle cx="450" cy="381" r="12" />
-              <circle cx="480" cy="380" r="15" />
-              <circle cx="510" cy="383" r="10" />
-
-              <circle cx="950" cy="380" r="15" />
-              <circle cx="980" cy="382" r="12" />
-              <circle cx="1010" cy="379" r="16" />
-              <circle cx="1040" cy="381" r="11" />
-            </g>
-          </svg>
-        </div>
+      {/* NEW ATTACHED BACKGROUND IMAGE */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+        <img
+          src="/bhuvista_background.png"
+          alt="BhuVista Background"
+          className="h-full w-full object-cover object-center"
+        />
       </div>
 
-      {/* TOP HEADER SECTION — Matches Reference 2 Exact Layout */}
+      {/* TOP HEADER SECTION */}
       <header className="relative z-20 flex w-full items-start justify-between px-6 pt-5 pb-2 sm:px-10 sm:pt-6">
         {/* TOP LEFT: Ministry of Rural Development / Govt of India Logo */}
         <div className="flex items-center">
@@ -253,8 +131,8 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* TOP CENTER: BhuVista Brand Identity & Wordmark */}
-        <div className="flex flex-col items-center text-center">
+        {/* TOP CENTER: BhuVista Brand Identity & Wordmark - Horizontally Centered */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center text-center pointer-events-auto">
           <h1 className="text-3xl sm:text-4xl md:text-[42px] font-extrabold tracking-tight text-[#0d472a] font-serif leading-none">
             {labels.brandTitle}
           </h1>
@@ -268,12 +146,12 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* TOP RIGHT: The Provided NEW BhuVista Logo Asset */}
+        {/* TOP RIGHT: Enlarged BhuVista Logo Asset */}
         <div className="flex items-center justify-end">
           <img
             src="/bhuvista-logo-new.png"
             alt="BhuVista Logo"
-            className="h-12 sm:h-14 md:h-16 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
+            className="h-16 sm:h-20 md:h-24 w-auto object-contain max-w-[200px] sm:max-w-[260px] md:max-w-[300px]"
           />
         </div>
       </header>
