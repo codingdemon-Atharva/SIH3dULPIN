@@ -18,6 +18,27 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
   const [lang, setLang] = useState<"EN" | "HI">("EN");
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [headerNotifs, setHeaderNotifs] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Read saved language from localStorage
+    if (typeof window !== "undefined") {
+      const savedLang = localStorage.getItem("bhuvista_lang") as "EN" | "HI";
+      if (savedLang === "EN" || savedLang === "HI") {
+        setLang(savedLang);
+      }
+    }
+  }, []);
+
+  const handleLanguageToggle = () => {
+    const nextLang = lang === "EN" ? "HI" : "EN";
+    setLang(nextLang);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bhuvista_lang", nextLang);
+      window.dispatchEvent(new Event("storage"));
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -53,6 +74,28 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
       isMounted = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchNotifications() {
+      try {
+        const { getGovernmentNotifications } = await import("@/src/app/actions/government");
+        const res = await getGovernmentNotifications();
+        if (isMounted && res.success) {
+          setUnreadCount(res.unreadCount || 0);
+          setHeaderNotifs(res.notifications || []);
+        }
+      } catch {
+        if (isMounted) {
+          setUnreadCount(0);
+          setHeaderNotifs([]);
+        }
+      }
+    }
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
 
   async function handleLogout() {
     try {
@@ -173,7 +216,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
           {/* Language Selector */}
           <button
             type="button"
-            onClick={() => setLang(lang === "EN" ? "HI" : "EN")}
+            onClick={handleLanguageToggle}
             className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e2dad0] bg-white px-3 text-xs font-semibold text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-sm"
           >
             <span>🌐</span>
@@ -191,18 +234,56 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-600 animate-pulse" />
+              )}
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[#e2dad0] bg-white p-3.5 text-xs text-[#162a21] shadow-xl z-50">
+              <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[#e2dad0] bg-white p-3.5 text-xs text-[#162a21] shadow-xl z-50">
                 <div className="flex items-center justify-between border-b border-[#e2dad0] pb-2">
                   <p className="font-bold text-[#2d6a4f]">
-                    Government Notices
+                    {lang === "EN" ? "Government Notices" : "सरकारी सूचनाएं"}
                   </p>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">
+                      {unreadCount} {lang === "EN" ? "new" : "नया"}
+                    </span>
+                  )}
                 </div>
-                <div className="py-3 text-[#3d5a4c] space-y-2">
-                  <p>• Government Authorization boundary active.</p>
-                  <p>• Server-side session verification enforced.</p>
+
+                {headerNotifs.length === 0 ? (
+                  <div className="py-4 text-center text-[#6b887a]">
+                    <p className="text-xs">{lang === "EN" ? "No new notifications" : "कोई नई सूचनाएं नहीं"}</p>
+                  </div>
+                ) : (
+                  <div className="py-2 space-y-2 max-h-60 overflow-y-auto">
+                    {headerNotifs.slice(0, 4).map((n) => (
+                      <Link
+                        key={n.id}
+                        href={n.targetUrl || "/government/notifications"}
+                        onClick={() => setShowNotifications(false)}
+                        className="block rounded-lg p-2 hover:bg-[#f8f5ee] transition border border-transparent hover:border-[#e2dad0]"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-extrabold text-[#2d6a4f] uppercase">{n.category}</span>
+                          <span className="text-[9px] text-[#6b887a]">{n.timestamp ? n.timestamp.substring(0, 10) : ""}</span>
+                        </div>
+                        <p className="font-bold text-[#162a21] text-xs truncate mt-0.5">{n.title}</p>
+                        <p className="text-[10px] text-[#6b887a] line-clamp-1">{n.description}</p>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-[#e2dad0] text-center">
+                  <Link
+                    href="/government/notifications"
+                    onClick={() => setShowNotifications(false)}
+                    className="text-xs font-bold text-[#2d6a4f] hover:underline block"
+                  >
+                    {lang === "EN" ? "View All Notifications →" : "सभी सूचनाएं देखें →"}
+                  </Link>
                 </div>
               </div>
             )}
