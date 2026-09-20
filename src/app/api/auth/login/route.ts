@@ -68,8 +68,34 @@ export async function POST(request: Request) {
       );
     }
 
-    // The selected login role must match the user's actual database role.
-    if (user.role !== requestedRole) {
+    // Validate role match based on login portal choice.
+    // The "SURVEYOR" option on main login accepts Surveyors and Government personnel.
+    if (requestedRole === "VIEWER") {
+      if (user.role !== "VIEWER") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid email, password, or login role.",
+          },
+          { status: 401 }
+        );
+      }
+    } else if (requestedRole === "SURVEYOR") {
+      const allowedInstitutionalRoles: UserRoleType[] = [
+        "SURVEYOR",
+        "GOVERNMENT_OFFICER",
+        "GOVERNMENT_ADMIN",
+      ];
+      if (!allowedInstitutionalRoles.includes(user.role as UserRoleType)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid email, password, or login role.",
+          },
+          { status: 401 }
+        );
+      }
+    } else if (user.role !== requestedRole) {
       return NextResponse.json(
         {
           success: false,

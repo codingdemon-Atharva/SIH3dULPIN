@@ -14,8 +14,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/notifications") ||
     pathname.startsWith("/help-support") ||
     pathname === "/login" ||
-    pathname === "/signup" ||
-    pathname === "/government/login";
+    pathname === "/signup";
 
   const isGovernmentRoute = pathname.startsWith("/government");
 
@@ -24,9 +23,6 @@ export async function proxy(request: NextRequest) {
   if (!sessionToken) {
     if (isPublicRoute) {
       return NextResponse.next();
-    }
-    if (isGovernmentRoute) {
-      return NextResponse.redirect(new URL("/government/login", request.url));
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -37,24 +33,16 @@ export async function proxy(request: NextRequest) {
     if (isPublicRoute) {
       return NextResponse.next();
     }
-    if (isGovernmentRoute) {
-      return NextResponse.redirect(new URL("/government/login", request.url));
-    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Enforce Government role requirement for /government/... routes
-  if (isGovernmentRoute && pathname !== "/government/login") {
+  if (isGovernmentRoute) {
     if (!isGovernmentRole(user.role)) {
       return NextResponse.redirect(
-        new URL("/government/login?error=unauthorized", request.url)
+        new URL("/login?error=unauthorized", request.url)
       );
     }
-  }
-
-  // Redirect authenticated Government users away from /government/login to /government/dashboard
-  if (pathname === "/government/login" && isGovernmentRole(user.role)) {
-    return NextResponse.redirect(new URL("/government/dashboard", request.url));
   }
 
   return NextResponse.next();

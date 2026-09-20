@@ -15,7 +15,7 @@ export default function GovernmentDashboardFoundationPage() {
       try {
         const res = await fetch("/api/auth/me");
         if (!res.ok) {
-          router.push("/government/login");
+          router.push("/login");
           return;
         }
         const data = await res.json();
@@ -27,10 +27,10 @@ export default function GovernmentDashboardFoundationPage() {
         ) {
           setUser(data.user);
         } else {
-          router.push("/government/login?error=unauthorized");
+          router.push("/login?error=unauthorized");
         }
       } catch {
-        router.push("/government/login");
+        router.push("/login");
       } finally {
         setLoading(false);
       }
@@ -42,10 +42,10 @@ export default function GovernmentDashboardFoundationPage() {
   async function handleLogout() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/government/login");
+      router.push("/login");
       router.refresh();
     } catch {
-      router.push("/government/login");
+      router.push("/login");
     }
   }
 
