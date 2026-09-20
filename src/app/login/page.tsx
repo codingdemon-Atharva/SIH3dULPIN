@@ -149,7 +149,7 @@ export default function LoginPage() {
         {/* TOP RIGHT: Enlarged BhuVista Logo Asset */}
         <div className="flex items-center justify-end">
           <img
-            src="/bhuvista-logo-new.png"
+            src="/bhuvista-logo.png"
             alt="BhuVista Logo"
             className="h-16 sm:h-20 md:h-24 w-auto object-contain max-w-[200px] sm:max-w-[260px] md:max-w-[300px]"
           />
