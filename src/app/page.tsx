@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import FileUploader from "@/src/components/FileUploader";
 import type {
@@ -19,6 +19,9 @@ import SurveyorApprovalPanel, {
   SurveyorVerificationData,
 } from "@/src/components/SurveyorApprovalPanel";
 
+import { PageShell } from "@/src/components/PageShell";
+import { Badge, Button, Card } from "@/src/components/ui";
+
 // Database Server Actions
 import {
   getAllBuildings,
@@ -27,6 +30,7 @@ import {
   updateBuildingStatus,
   deleteBuilding,
 } from "@/src/app/actions/cadastre";
+import { getPublicVerifiedBuildings } from "@/src/app/actions/getPublicBuildings";
 
 /**
  * MapLibre must remain client-side.
@@ -50,72 +54,42 @@ type UserRole =
   | "VIEWER"
   | "SURVEYOR";
 
-export default function Dashboard() {
+function DashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [roleMode, setRoleMode] =
     useState<RoleMode>("PUBLIC_VIEWER");
 
-  /**
-   * Authentication role.
-   *
-   * VIEWER:
-   * - Public Viewer
-   * - Uploader
-   *
-   * SURVEYOR:
-   * - Public Viewer
-   * - Surveyor
-   * - Uploader
-   */
   const [userRole, setUserRole] =
     useState<UserRole | null>(null);
 
   const [showUploader, setShowUploader] =
     useState(false);
 
-  /**
-   * All buildings loaded from PostgreSQL.
-   *
-   * Public Viewer:
-   * all buildings are displayed on the map.
-   *
-   * Surveyor:
-   * all submissions are displayed in the
-   * management panel.
-   */
   const [buildingList, setBuildingList] =
     useState<any[]>([]);
 
-  /**
-   * Currently selected building.
-   *
-   * Public Viewer starts with null so the
-   * initial screen is the all-buildings map.
-   */
   const [building, setBuilding] =
-    useState<ParsedBuilding | null>(
-      null
-    );
+    useState<ParsedBuilding | null>(null);
 
   const [selectedProperty, setSelectedProperty] =
     useState<string | null>(null);
 
   const [verification, setVerification] =
-    useState<SurveyorVerificationData | null>(
-      null
-    );
+    useState<SurveyorVerificationData | null>(null);
 
   const [loadingDb, setLoadingDb] =
     useState(false);
 
+  const [activeNavSection, setActiveNavSection] =
+    useState("home");
+
+  const [mapLocationNotice, setMapLocationNotice] =
+    useState<string | null>(null);
+
   /**
-   * ============================================================
    * LOAD CURRENT AUTHENTICATED USER
-   * ============================================================
-   *
-   * The login API puts the real database role into the JWT.
-   * /api/auth/me reads that session and returns the role here.
    */
   useEffect(() => {
     async function loadCurrentUser() {
@@ -151,22 +125,11 @@ export default function Dashboard() {
   }, []);
 
   /**
-   * ============================================================
    * PORTAL MODE AUTHORIZATION
-   * ============================================================
-   *
-   * roleMode controls which portal is currently displayed.
-   *
-   * userRole controls whether the authenticated user is
-   * actually allowed to enter that portal.
    */
   const handleRoleModeChange = (
     mode: RoleMode
   ) => {
-    /**
-     * A normal Viewer must never be able to enter
-     * the Surveyor portal.
-     */
     if (
       mode === "SURVEYOR" &&
       userRole !== "SURVEYOR"
@@ -176,10 +139,6 @@ export default function Dashboard() {
 
     setRoleMode(mode);
 
-    /**
-     * Clear selected Surveyor state when
-     * changing to another portal.
-     */
     if (mode !== "SURVEYOR") {
       setVerification(null);
     }
@@ -192,9 +151,7 @@ export default function Dashboard() {
   };
 
   /**
-   * ============================================================
    * DATABASE BUILDING -> ParsedBuilding
-   * ============================================================
    */
   const mapDbToParsedBuilding = (
     dbBuilding: any
@@ -221,19 +178,16 @@ export default function Dashboard() {
       ? dbBuilding.floors
       : [];
 
-    return {
-      id:
-        dbBuilding?.id ??
-        `BLDG-${Date.now()}-${Math.random()}`,
+    const buildingId = String(dbBuilding?.id ?? "BLDG-DEFAULT");
 
-      name:
+    return {
+      id: buildingId,
+
+      name: String(
         dbBuilding?.name ??
         dbBuilding?.buildingName ??
-        "Cadastral Building",
-
-      address:
-        dbBuilding?.address ??
-        "",
+        "Cadastral Building"
+      ),
 
       ...(hasValidGeoreference
         ? {
@@ -245,7 +199,7 @@ export default function Dashboard() {
         : {}),
 
       floors: floors.map(
-        (floor: any) => ({
+        (floor: any, floorIdx: number) => ({
           floorNumber:
             Number(
               floor?.floorNumber
@@ -265,14 +219,10 @@ export default function Dashboard() {
             floor?.units
           )
             ? floor.units.map(
-                (unit: any) => {
+                (unit: any, unitIdx: number) => {
                   let polygon =
                     unit?.polygon;
 
-                  /**
-                   * PostgreSQL may return
-                   * polygon as JSON text.
-                   */
                   if (
                     typeof polygon ===
                     "string"
@@ -288,14 +238,16 @@ export default function Dashboard() {
                   }
 
                   return {
-                    id:
+                    id: String(
                       unit?.id ??
-                      `UNIT-${Date.now()}-${Math.random()}`,
+                      `UNIT-${buildingId}-${floorIdx}-${unitIdx}`
+                    ),
 
-                    unitNumber:
+                    unitNumber: String(
                       unit?.unitNumber ??
                       unit?.id ??
-                      "UNIT",
+                      "UNIT"
+                    ),
 
                     floorNumber:
                       Number(
@@ -314,13 +266,12 @@ export default function Dashboard() {
                         ? polygon
                         : [],
 
-                    ulpin:
-                      unit?.ulpin ||
-                      undefined,
+                    ulpin: unit?.ulpin ? String(unit.ulpin) : undefined,
 
-                    spaceType:
+                    spaceType: String(
                       unit?.spaceType ??
-                      "RESIDENTIAL",
+                      "RESIDENTIAL"
+                    ),
                   };
                 }
               )
@@ -331,43 +282,7 @@ export default function Dashboard() {
   };
 
   /**
-   * ============================================================
-   * GET BUILDING STATISTICS
-   * ============================================================
-   */
-  const getBuildingStats = (
-    dbBuilding: any
-  ) => {
-    const floors =
-      Array.isArray(
-        dbBuilding?.floors
-      )
-        ? dbBuilding.floors
-        : [];
-
-    let units = 0;
-
-    for (const floor of floors) {
-      if (
-        Array.isArray(
-          floor?.units
-        )
-      ) {
-        units +=
-          floor.units.length;
-      }
-    }
-
-    return {
-      floors: floors.length,
-      units,
-    };
-  };
-
-  /**
-   * ============================================================
    * BUILDINGS THAT CAN ACTUALLY BE PUT ON MAP
-   * ============================================================
    */
   const publicMapBuildings =
     useMemo(() => {
@@ -389,154 +304,127 @@ export default function Dashboard() {
         );
     }, [buildingList]);
 
-  /**
-   * ============================================================
-   * LOAD DATABASE RECORDS
-   * ============================================================
-   */
-  const loadDatabaseRecords =
-    async () => {
-      setLoadingDb(true);
+  const loadDatabaseRecords = async () => {
+    setLoadingDb(true);
 
-      try {
-        /**
-         * ------------------------------------------------------
-         * PUBLIC VIEWER
-         * ------------------------------------------------------
-         */
-        if (
-          roleMode ===
-          "PUBLIC_VIEWER"
-        ) {
-          const res =
-            await getAllBuildings();
-
-          if (
-            res.success &&
-            res.data
-          ) {
-            setBuildingList(
-              res.data
-            );
-
-            setBuilding(null);
-
-            setSelectedProperty(
-              null
-            );
-
-            setVerification(null);
-          } else {
-            setBuildingList([]);
-            setBuilding(null);
-            setSelectedProperty(
-              null
-            );
-          }
-
-          return;
+    try {
+      if (roleMode === "PUBLIC_VIEWER") {
+        const res = await getPublicVerifiedBuildings();
+        if (res.success && res.data) {
+          setBuildingList(res.data);
+          setBuilding(null);
+          setSelectedProperty(null);
+          setVerification(null);
+        } else {
+          setBuildingList([]);
+          setBuilding(null);
+          setSelectedProperty(null);
         }
-
-        /**
-         * ------------------------------------------------------
-         * SURVEYOR
-         * ------------------------------------------------------
-         */
-        if (
-          roleMode ===
-          "SURVEYOR"
-        ) {
-          /**
-           * Extra client-side safety.
-           *
-           * Even if roleMode somehow becomes SURVEYOR,
-           * a Viewer must not load Surveyor records.
-           */
-          if (
-            userRole !==
-            "SURVEYOR"
-          ) {
-            setRoleMode(
-              "PUBLIC_VIEWER"
-            );
-            return;
-          }
-
-          const res =
-            await getAllBuildings();
-
-          if (
-            res.success &&
-            res.data
-          ) {
-            setBuildingList(
-              res.data
-            );
-
-            if (
-              res.data.length >
-              0
-            ) {
-              setBuilding(
-                (current) => {
-                  if (current) {
-                    return current;
-                  }
-
-                  return mapDbToParsedBuilding(
-                    res.data[0]
-                  );
-                }
-              );
-            } else {
-              setBuilding(null);
-            }
-          } else {
-            setBuildingList([]);
-            setBuilding(null);
-          }
-
-          return;
-        }
-
-        /**
-         * ------------------------------------------------------
-         * UPLOADER
-         * ------------------------------------------------------
-         */
-        if (
-          roleMode ===
-          "UPLOADER"
-        ) {
-          return;
-        }
-      } catch (error) {
-        console.error(
-          "Failed to load cadastral records:",
-          error
-        );
-      } finally {
-        setLoadingDb(false);
+        return;
       }
+
+      if (roleMode === "SURVEYOR") {
+        if (userRole !== "SURVEYOR") {
+          setRoleMode("PUBLIC_VIEWER");
+          return;
+        }
+
+        const res = await getAllBuildings();
+        if (res.success && res.data) {
+          setBuildingList(res.data);
+          if (res.data.length > 0) {
+            setBuilding((current) => {
+              if (current) return current;
+              return mapDbToParsedBuilding(res.data[0]);
+            });
+          } else {
+            setBuilding(null);
+          }
+        } else {
+          setBuildingList([]);
+          setBuilding(null);
+        }
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to load cadastral records:", error);
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (isMounted) {
+      loadDatabaseRecords();
+    }
+
+    return () => {
+      isMounted = false;
     };
+  }, [roleMode, userRole]);
 
   /**
-   * ============================================================
-   * INITIAL DATABASE LOAD + ROLE CHANGE
-   * ============================================================
+   * HANDLE DEEP LINK QUERY PARAMS (e.g. ?propertyId=... or ?buildingId=...)
    */
   useEffect(() => {
-    loadDatabaseRecords();
+    if (roleMode !== "PUBLIC_VIEWER" || loadingDb) return;
+
+    const queryPropertyId = searchParams?.get("propertyId") || searchParams?.get("ulpin");
+    const queryBuildingId = searchParams?.get("buildingId");
+
+    if (!queryPropertyId && !queryBuildingId) return;
+
+    queueMicrotask(() => {
+      if (publicMapBuildings.length === 0 && buildingList.length > 0) {
+        setMapLocationNotice("Map location is not available for this record.");
+        return;
+      }
+
+      if (publicMapBuildings.length > 0) {
+        let matchedBuilding: ParsedBuilding | undefined;
+        let matchedUnitId: string | null = null;
+
+        for (const b of publicMapBuildings) {
+          if (queryBuildingId && b.id === queryBuildingId) {
+            matchedBuilding = b;
+          }
+
+          if (queryPropertyId) {
+            for (const floor of b.floors ?? []) {
+              const unit = floor.units?.find(
+                (u) => u.id === queryPropertyId || u.ulpin === queryPropertyId
+              );
+              if (unit) {
+                matchedBuilding = b;
+                matchedUnitId = unit.id;
+                break;
+              }
+            }
+          }
+
+          if (matchedBuilding) break;
+        }
+
+        if (matchedBuilding) {
+          setBuilding(matchedBuilding);
+          if (matchedUnitId) {
+            setSelectedProperty(matchedUnitId);
+          }
+        } else if (buildingList.length > 0) {
+          setMapLocationNotice("Map location is not available for this record.");
+        }
+      }
+    });
   }, [
+    searchParams,
     roleMode,
-    userRole,
+    loadingDb,
+    publicMapBuildings,
+    buildingList,
   ]);
 
-  /**
-   * ============================================================
-   * PUBLIC BUILDING SELECTED FROM MAP
-   * ============================================================
-   */
   const handlePublicBuildingSelect =
     (
       selectedBuilding: ParsedBuilding
@@ -544,11 +432,7 @@ export default function Dashboard() {
       setBuilding(
         selectedBuilding
       );
-
-      setSelectedProperty(
-        null
-      );
-
+      setSelectedProperty(null);
       setVerification(null);
 
       sessionStorage.setItem(
@@ -570,18 +454,9 @@ export default function Dashboard() {
       }, 50);
     };
 
-  /**
-   * ============================================================
-   * BACK TO PUBLIC MAP
-   * ============================================================
-   */
   const handleBackToMap = () => {
     setBuilding(null);
-
-    setSelectedProperty(
-      null
-    );
-
+    setSelectedProperty(null);
     setVerification(null);
 
     window.scrollTo({
@@ -590,35 +465,14 @@ export default function Dashboard() {
     });
   };
 
-  /**
-   * ============================================================
-   * FILE UPLOADER
-   * ============================================================
-   */
   const handleParsed = async (
     parsedBuilding: ParsedBuilding
   ) => {
-    console.log(
-      "Uploaded ParsedBuilding:",
-      parsedBuilding
-    );
-
-    console.log(
-      "Uploaded GeoReference:",
-      parsedBuilding.georeference
-    );
-
     setBuilding(
       parsedBuilding
     );
-
-    setSelectedProperty(
-      null
-    );
-
-    setShowUploader(
-      false
-    );
+    setSelectedProperty(null);
+    setShowUploader(false);
 
     try {
       const res =
@@ -628,32 +482,21 @@ export default function Dashboard() {
 
       if (res.success) {
         alert(
-          "Plan saved to database queue with updated coordinates as PENDING_REVIEW!"
+          "Plan saved to database queue as PENDING_REVIEW!"
         );
-
         await loadDatabaseRecords();
       } else {
-        alert(
-          "Upload failed."
-        );
+        alert("Upload failed.");
       }
     } catch (error) {
       console.error(
         "Upload/save error:",
         error
       );
-
-      alert(
-        "Upload failed."
-      );
+      alert("Upload failed.");
     }
   };
 
-  /**
-   * ============================================================
-   * STATUS CHANGE
-   * ============================================================
-   */
   const handleStatusChange = async (
     buildingId: string,
     newStatus:
@@ -671,7 +514,7 @@ export default function Dashboard() {
         await loadDatabaseRecords();
       } else {
         alert(
-          "Failed to update building status."
+          "Failed to update status."
         );
       }
     } catch (error) {
@@ -679,24 +522,18 @@ export default function Dashboard() {
         "Status update error:",
         error
       );
-
       alert(
-        "Failed to update building status."
+        "Failed to update status."
       );
     }
   };
 
-  /**
-   * ============================================================
-   * DELETE BUILDING
-   * ============================================================
-   */
   const handleDelete = async (
     buildingId: string
   ) => {
     if (
       !confirm(
-        "Are you sure you want to permanently delete this cadastral submission?"
+        "Are you sure you want to delete this submission?"
       )
     ) {
       return;
@@ -714,42 +551,25 @@ export default function Dashboard() {
           buildingId
         ) {
           setBuilding(null);
-
-          setSelectedProperty(
-            null
-          );
+          setSelectedProperty(null);
         }
-
         await loadDatabaseRecords();
       } else {
-        alert(
-          "Deletion failed."
-        );
+        alert("Deletion failed.");
       }
     } catch (error) {
       console.error(
         "Delete error:",
         error
       );
-
-      alert(
-        "Deletion failed."
-      );
+      alert("Deletion failed.");
     }
   };
 
-  /**
-   * ============================================================
-   * SURVEYOR VERIFICATION
-   * ============================================================
-   */
   const handleVerificationComplete =
     async (
       data: SurveyorVerificationData
     ) => {
-      /**
-       * Extra client-side protection.
-       */
       if (
         userRole !==
         "SURVEYOR"
@@ -757,27 +577,22 @@ export default function Dashboard() {
         return;
       }
 
-      setVerification(
-        data
-      );
+      setVerification(data);
 
       if (
         building?.id &&
-        data.status ===
-          "APPROVED"
+        data.status === "APPROVED"
       ) {
         try {
           const res =
             await approveBuilding(
-              building.id,
-            
+              building.id
             );
 
           if (res.success) {
             alert(
-              "Building approved & assigned official ULPINs in PostgreSQL!"
+              "Building approved and assigned official ULPINs!"
             );
-
             await loadDatabaseRecords();
           } else {
             alert(
@@ -789,7 +604,6 @@ export default function Dashboard() {
             "Approval error:",
             error
           );
-
           alert(
             "Database approval failed."
           );
@@ -797,11 +611,6 @@ export default function Dashboard() {
       }
     };
 
-  /**
-   * ============================================================
-   * PROPERTY NAVIGATION
-   * ============================================================
-   */
   const handlePropertyNavigate = (
     property:
       | Property2D
@@ -813,9 +622,7 @@ export default function Dashboard() {
         ? property
         : property.id;
 
-    setSelectedProperty(
-      propId
-    );
+    setSelectedProperty(propId);
 
     if (building) {
       sessionStorage.setItem(
@@ -833,11 +640,6 @@ export default function Dashboard() {
     }
   };
 
-  /**
-   * ============================================================
-   * PROPERTY SELECTION
-   * ============================================================
-   */
   const handlePropertySelect = (
     property:
       | Property2D
@@ -849,9 +651,7 @@ export default function Dashboard() {
         ? property
         : property.id;
 
-    setSelectedProperty(
-      propId
-    );
+    setSelectedProperty(propId);
 
     if (building) {
       sessionStorage.setItem(
@@ -863,1695 +663,274 @@ export default function Dashboard() {
     }
   };
 
-  /**
-   * ============================================================
-   * RENDER
-   * ============================================================
-   */
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        width: "100%",
-        maxWidth: "100vw",
-
-        overflowX:
-          "hidden",
-
-        overflowY:
-          "auto",
-
-        background:
-          "#090d16",
-
-        color:
-          "#f8fafc",
-
-        display:
-          "flex",
-
-        flexDirection:
-          "column",
-
-        fontFamily:
-          "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-
-        boxSizing:
-          "border-box",
-      }}
+    <PageShell
+      roleMode={roleMode}
+      userRole={userRole}
+      onRoleModeChange={handleRoleModeChange}
+      activeSection={activeNavSection}
+      onSelectSection={(sec) => setActiveNavSection(sec)}
     >
-      {/* ======================================================
-          HEADER
-          ====================================================== */}
-
-      <header
-        style={{
-          height:
-            "70px",
-
-          minHeight:
-            "70px",
-
-          padding:
-            "0 28px",
-
-          background:
-            "rgba(15,23,42,0.95)",
-
-          backdropFilter:
-            "blur(12px)",
-
-          borderBottom:
-            "1px solid #1e293b",
-
-          display:
-            "flex",
-
-          alignItems:
-            "center",
-
-          justifyContent:
-            "space-between",
-
-          position:
-            "sticky",
-
-          top: 0,
-
-          zIndex: 50,
-
-          boxSizing:
-            "border-box",
-        }}
-      >
-        {/* BRAND */}
-
-        <div
-          style={{
-            display:
-              "flex",
-
-            alignItems:
-              "center",
-
-            gap:
-              "12px",
-          }}
-        >
-          <div
-            style={{
-              width:
-                "40px",
-
-              height:
-                "40px",
-
-              borderRadius:
-                "9px",
-
-              background:
-                "linear-gradient(135deg,#2563eb,#1d4ed8)",
-
-              display:
-                "flex",
-
-              alignItems:
-                "center",
-
-              justifyContent:
-                "center",
-
-              fontWeight:
-                800,
-
-              color:
-                "#ffffff",
-            }}
-          >
-            3D
-          </div>
-
-          <div>
-            <div
-              style={{
-                fontSize:
-                  "17px",
-
-                fontWeight:
-                  800,
-              }}
-            >
-              3D ULPIN Engine
-            </div>
-
-            <div
-              style={{
-                fontSize:
-                  "10px",
-
-                color:
-                  "#94a3b8",
-              }}
-            >
-              Volumetric Cadastre &
-              Vertical Land Governance
-            </div>
-          </div>
-        </div>
-
-        {/* ====================================================
-            ROLE SWITCHER
-            ==================================================== */}
-
-        <div
-          style={{
-            display:
-              "flex",
-
-            background:
-              "#0f172a",
-
-            padding:
-              "4px",
-
-            borderRadius:
-              "10px",
-
-            border:
-              "1px solid #1e293b",
-          }}
-        >
-          {/* PUBLIC */}
-
-          <button
-            type="button"
-            onClick={() =>
-              handleRoleModeChange(
-                "PUBLIC_VIEWER"
-              )
-            }
-            style={{
-              padding:
-                "7px 14px",
-
-              borderRadius:
-                "7px",
-
-              border:
-                "none",
-
-              background:
-                roleMode ===
-                "PUBLIC_VIEWER"
-                  ? "#2563eb"
-                  : "transparent",
-
-              color:
-                roleMode ===
-                "PUBLIC_VIEWER"
-                  ? "#ffffff"
-                  : "#94a3b8",
-
-              fontSize:
-                "12px",
-
-              fontWeight:
-                700,
-
-              cursor:
-                "pointer",
-            }}
-          >
-            👁 Public Viewer
-          </button>
-
-          {/* SURVEYOR */}
-
-          {userRole ===
-            "SURVEYOR" && (
-            <button
-              type="button"
-              onClick={() =>
-                handleRoleModeChange(
-                  "SURVEYOR"
-                )
-              }
-              style={{
-                padding:
-                  "7px 14px",
-
-                borderRadius:
-                  "7px",
-
-                border:
-                  "none",
-
-                background:
-                  roleMode ===
-                  "SURVEYOR"
-                    ? "#059669"
-                    : "transparent",
-
-                color:
-                  roleMode ===
-                  "SURVEYOR"
-                    ? "#ffffff"
-                    : "#94a3b8",
-
-                fontSize:
-                  "12px",
-
-                fontWeight:
-                  700,
-
-                cursor:
-                  "pointer",
-              }}
-            >
-              🛡 Surveyor Portal
-            </button>
-          )}
-
-          {/* UPLOADER */}
-
-          <button
-            type="button"
-            onClick={() =>
-              handleRoleModeChange(
-                "UPLOADER"
-              )
-            }
-            style={{
-              padding:
-                "7px 14px",
-
-              borderRadius:
-                "7px",
-
-              border:
-                "none",
-
-              background:
-                roleMode ===
-                "UPLOADER"
-                  ? "#d97706"
-                  : "transparent",
-
-              color:
-                roleMode ===
-                "UPLOADER"
-                  ? "#ffffff"
-                  : "#94a3b8",
-
-              fontSize:
-                "12px",
-
-              fontWeight:
-                700,
-
-              cursor:
-                "pointer",
-            }}
-          >
-            📤 Uploader Portal
-          </button>
-        </div>
-      </header>
-
-      {/* ======================================================
-          UPLOADER MODAL
-          ====================================================== */}
-
+      {/* UPLOADER MODAL */}
       {showUploader && (
-        <div
-          style={{
-            position:
-              "fixed",
-
-            inset:
-              0,
-
-            zIndex:
-              100,
-
-            background:
-              "rgba(2,6,23,0.75)",
-
-            backdropFilter:
-              "blur(6px)",
-
-            display:
-              "flex",
-
-            alignItems:
-              "center",
-
-            justifyContent:
-              "center",
-
-            padding:
-              "20px",
-          }}
-        >
-          <div
-            style={{
-              background:
-                "#0f172a",
-
-              border:
-                "1px solid #1e293b",
-
-              borderRadius:
-                "16px",
-
-              padding:
-                "28px",
-
-              width:
-                "100%",
-
-              maxWidth:
-                "550px",
-
-              boxShadow:
-                "0 25px 50px -12px rgba(0,0,0,0.5)",
-            }}
-          >
-            <div
-              style={{
-                display:
-                  "flex",
-
-                justifyContent:
-                  "space-between",
-
-                alignItems:
-                  "center",
-
-                marginBottom:
-                  "20px",
-              }}
-            >
-              <h2
-                style={{
-                  margin:
-                    0,
-
-                  fontSize:
-                    "18px",
-
-                  fontWeight:
-                    800,
-
-                  color:
-                    "#f8fafc",
-                }}
-              >
-                Upload Field Plan
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#081a12]/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-[#1f3a2f] bg-[#0f2d21] p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4 border-b border-[#1f3a2f] pb-3">
+              <h2 className="text-lg font-bold text-white">
+                Upload Cadastral Field Plan
               </h2>
-
               <button
                 type="button"
-                onClick={() =>
-                  setShowUploader(
-                    false
-                  )
-                }
-                style={{
-                  border:
-                    "none",
-
-                  background:
-                    "#1e293b",
-
-                  color:
-                    "#94a3b8",
-
-                  borderRadius:
-                    "6px",
-
-                  padding:
-                    "6px 10px",
-
-                  cursor:
-                    "pointer",
-                }}
+                onClick={() => setShowUploader(false)}
+                className="rounded-lg bg-[#14382a] px-2.5 py-1 text-xs font-semibold text-[#a8c3b5] hover:text-white"
               >
                 ✕
               </button>
             </div>
-
-            <FileUploader
-              onParsed={
-                handleParsed
-              }
-            />
+            <FileUploader onParsed={handleParsed} />
           </div>
         </div>
       )}
 
-      {/* ======================================================
-          MAIN CONTENT
-          ====================================================== */}
-
-      <div
-        style={{
-          flex:
-            "1 1 auto",
-
-          width:
-            "100%",
-
-          maxWidth:
-            "1500px",
-
-          margin:
-            "0 auto",
-
-          padding:
-            "24px 28px 40px",
-
-          boxSizing:
-            "border-box",
-
-          minWidth:
-            0,
-        }}
-      >
-        {/* ====================================================
-            SURVEYOR PORTAL
-            ==================================================== */}
-
-        {roleMode ===
-        "SURVEYOR" ? (
-          <div
-            style={{
-              display:
-                "grid",
-
-              gridTemplateColumns:
-                "360px minmax(0,1fr)",
-
-              gap:
-                "24px",
-
-              minWidth:
-                0,
-            }}
-          >
-            {/* SURVEYOR RECORDS */}
-
-            <aside
-              style={{
-                background:
-                  "rgba(15,23,42,0.6)",
-
-                border:
-                  "1px solid #1e293b",
-
-                borderRadius:
-                  "12px",
-
-                padding:
-                  "18px",
-
-                maxHeight:
-                  "calc(100vh - 120px)",
-
-                overflowY:
-                  "auto",
-              }}
-            >
-              <div
-                style={{
-                  display:
-                    "flex",
-
-                  justifyContent:
-                    "space-between",
-
-                  alignItems:
-                    "center",
-
-                  marginBottom:
-                    "16px",
-                }}
+      {/* SURVEYOR PORTAL */}
+      {roleMode === "SURVEYOR" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
+          <aside className="rounded-2xl border border-[#1f3a2f] bg-[#0f2d21]/90 p-4 max-h-[calc(100vh-120px)] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 border-b border-[#1f3a2f] pb-3">
+              <h3 className="text-sm font-bold text-[#52b788] flex items-center gap-2">
+                <span>📋</span> Cadastral Records ({buildingList.length})
+              </h3>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowUploader(true)}
               >
-                <h3
-                  style={{
-                    margin:
-                      0,
-
-                    fontSize:
-                      "15px",
-
-                    fontWeight:
-                      800,
-
-                    color:
-                      "#38bdf8",
-                  }}
-                >
-                  📋 Managed Records (
-                  {
-                    buildingList.length
-                  }
-                  )
-                </h3>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowUploader(
-                      true
-                    )
-                  }
-                  style={{
-                    background:
-                      "#2563eb",
-
-                    border:
-                      "none",
-
-                    color:
-                      "#fff",
-
-                    fontSize:
-                      "11px",
-
-                    fontWeight:
-                      700,
-
-                    padding:
-                      "6px 10px",
-
-                    borderRadius:
-                      "6px",
-
-                    cursor:
-                      "pointer",
-                  }}
-                >
-                  + Add Plan
-                </button>
-              </div>
-
-              {loadingDb ? (
-                <p
-                  style={{
-                    fontSize:
-                      "12px",
-
-                    color:
-                      "#94a3b8",
-                  }}
-                >
-                  Querying
-                  database...
-                </p>
-              ) : buildingList.length ===
-                0 ? (
-                <p
-                  style={{
-                    fontSize:
-                      "12px",
-
-                    color:
-                      "#94a3b8",
-                  }}
-                >
-                  No cadastral
-                  submissions
-                  found.
-                </p>
-              ) : (
-                buildingList.map(
-                  (item) => (
-                    <div
-                      key={
-                        item.id
-                      }
-
-                      onClick={() =>
-                        setBuilding(
-                          mapDbToParsedBuilding(
-                            item
-                          )
-                        )
-                      }
-
-                      style={{
-                        padding:
-                          "12px",
-
-                        borderRadius:
-                          "8px",
-
-                        marginBottom:
-                          "12px",
-
-                        background:
-                          building?.id ===
-                          item.id
-                            ? "#1e293b"
-                            : "#0f172a",
-
-                        border:
-                          building?.id ===
-                          item.id
-                            ? "1px solid #3b82f6"
-                            : "1px solid #1e293b",
-
-                        cursor:
-                          "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display:
-                            "flex",
-
-                          justifyContent:
-                            "space-between",
-
-                          alignItems:
-                            "center",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize:
-                              "13px",
-
-                            fontWeight:
-                              700,
-                          }}
-                        >
-                          {
-                            item.name
-                          }
-                        </span>
-
-                        <span
-                          style={{
-                            fontSize:
-                              "10px",
-
-                            fontWeight:
-                              800,
-
-                            padding:
-                              "2px 6px",
-
-                            borderRadius:
-                              "4px",
-
-                            background:
-                              item.approvalStatus ===
-                              "APPROVED"
-                                ? "#065f46"
-                                : item.approvalStatus ===
-                                    "REJECTED"
-                                  ? "#881337"
-                                  : "#854d0e",
-
-                            color:
-                              "#ffffff",
-                          }}
-                        >
-                          {
-                            item.approvalStatus
-                          }
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop:
-                            "10px",
-
-                          display:
-                            "flex",
-
-                          gap:
-                            "6px",
-
-                          flexWrap:
-                            "wrap",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={(
-                            e
-                          ) => {
-                            e.stopPropagation();
-
-                            handleStatusChange(
-                              item.id,
-                              "PENDING_REVIEW"
-                            );
-                          }}
-                          style={{
-                            background:
-                              "#334155",
-
-                            border:
-                              "none",
-
-                            color:
-                              "#cbd5e1",
-
-                            fontSize:
-                              "10px",
-
-                            padding:
-                              "4px 8px",
-
-                            borderRadius:
-                              "4px",
-
-                            cursor:
-                              "pointer",
-                          }}
-                        >
-                          Reset Pending
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(
-                            e
-                          ) => {
-                            e.stopPropagation();
-
-                            handleStatusChange(
-                              item.id,
-                              "REJECTED"
-                            );
-                          }}
-                          style={{
-                            background:
-                              "#991b1b",
-
-                            border:
-                              "none",
-
-                            color:
-                              "#ffffff",
-
-                            fontSize:
-                              "10px",
-
-                            padding:
-                              "4px 8px",
-
-                            borderRadius:
-                              "4px",
-
-                            cursor:
-                              "pointer",
-                          }}
-                        >
-                          Reject
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(
-                            e
-                          ) => {
-                            e.stopPropagation();
-
-                            handleDelete(
-                              item.id
-                            );
-                          }}
-                          style={{
-                            background:
-                              "#450a0a",
-
-                            border:
-                              "none",
-
-                            color:
-                              "#f87171",
-
-                            fontSize:
-                              "10px",
-
-                            padding:
-                              "4px 8px",
-
-                            borderRadius:
-                              "4px",
-
-                            cursor:
-                              "pointer",
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  )
-                )
-              )}
-            </aside>
-
-            {/* SURVEYOR INSPECTION */}
-
-            <section
-              style={{
-                display:
-                  "flex",
-
-                flexDirection:
-                  "column",
-
-                gap:
-                  "20px",
-
-                minWidth:
-                  0,
-              }}
-            >
-              {building ? (
-                <>
-                  <TopologyValidator
-                    building={
-                      building
-                    }
-                  />
-
-                  <SurveyorApprovalPanel
-                    building={
-                      building
-                    }
-                    onVerificationComplete={
-                      handleVerificationComplete
-                    }
-                  />
-
-                  <div
-                    style={{
-                      position:
-                        "relative",
-
-                      width:
-                        "100%",
-
-                      height:
-                        "650px",
-
-                      borderRadius:
-                        "14px",
-
-                      overflow:
-                        "hidden",
-
-                      border:
-                        "1px solid #1e293b",
-                    }}
-                  >
-                    <RealWorldMapViewer
-                      key={
-                        building.id
-                      }
-
-                      building={
-                        building
-                      }
-
-                      approvalStatus={
-                        verification?.status ||
-                        "PENDING_REVIEW"
-                      }
-
-                      onPropertyNavigate={
-                        handlePropertyNavigate
-                      }
-
-                      onPropertySelect={
-                        handlePropertySelect
-                      }
-                    />
-                  </div>
-                </>
-              ) : (
+                + Plan
+              </Button>
+            </div>
+
+            {loadingDb ? (
+              <p className="text-xs text-[#a8c3b5]">Loading records...</p>
+            ) : buildingList.length === 0 ? (
+              <p className="text-xs text-[#a8c3b5]">No submissions found.</p>
+            ) : (
+              buildingList.map((item) => (
                 <div
-                  style={{
-                    textAlign:
-                      "center",
-
-                    padding:
-                      "80px",
-
-                    color:
-                      "#94a3b8",
-                  }}
+                  key={item.id}
+                  onClick={() => setBuilding(mapDbToParsedBuilding(item))}
+                  className={`p-3 rounded-xl mb-3 cursor-pointer transition border ${
+                    building?.id === item.id
+                      ? "bg-[#1b4332] border-[#52b788]"
+                      : "bg-[#14382a]/60 border-[#1f3a2f] hover:border-[#2d6a4f]"
+                  }`}
                 >
-                  Select an upload
-                  from the left
-                  panel to inspect
-                  and manage.
-                </div>
-              )}
-            </section>
-          </div>
-        ) : (
-          /* ==================================================
-             PUBLIC / UPLOADER
-             ================================================== */
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white truncate max-w-[170px]">
+                      {item.name}
+                    </span>
+                    <Badge
+                      variant={
+                        item.approvalStatus === "APPROVED"
+                          ? "success"
+                          : item.approvalStatus === "REJECTED"
+                          ? "danger"
+                          : "warning"
+                      }
+                    >
+                      {item.approvalStatus}
+                    </Badge>
+                  </div>
 
-          <div
-            style={{
-              display:
-                "flex",
-
-              flexDirection:
-                "column",
-
-              gap:
-                "24px",
-
-              width:
-                "100%",
-
-              minWidth:
-                0,
-            }}
-          >
-            {/* ==================================================
-                PUBLIC VIEWER
-                ================================================== */}
-
-            {roleMode ===
-              "PUBLIC_VIEWER" && (
-              <>
-                {!building ? (
-                  <section
-                    style={{
-                      width:
-                        "100%",
-
-                      height:
-                        "calc(100vh - 125px)",
-
-                      minHeight:
-                        "700px",
-
-                      maxHeight:
-                        "900px",
-
-                      borderRadius:
-                        "18px",
-
-                      overflow:
-                        "hidden",
-
-                      border:
-                        "1px solid #1e293b",
-
-                      boxShadow:
-                        "0 15px 40px rgba(0,0,0,0.2)",
-                    }}
-                  >
-                    {loadingDb ? (
-                      <div
-                        style={{
-                          width:
-                            "100%",
-
-                          height:
-                            "100%",
-
-                          minHeight:
-                            "700px",
-
-                          display:
-                            "flex",
-
-                          alignItems:
-                            "center",
-
-                          justifyContent:
-                            "center",
-
-                          background:
-                            "#e2e8f0",
-
-                          color:
-                            "#334155",
-
-                          fontSize:
-                            "14px",
-
-                          fontWeight:
-                            700,
-                        }}
-                      >
-                        Loading cadastral
-                        structures...
-                      </div>
-                    ) : publicMapBuildings.length >
-                      0 ? (
-                      <RealWorldMapViewer
-                        buildings={
-                          publicMapBuildings
-                        }
-
-                        onBuildingSelect={
-                          handlePublicBuildingSelect
-                        }
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width:
-                            "100%",
-
-                          height:
-                            "100%",
-
-                          minHeight:
-                            "700px",
-
-                          display:
-                            "flex",
-
-                          alignItems:
-                            "center",
-
-                          justifyContent:
-                            "center",
-
-                          background:
-                            "#e2e8f0",
-
-                          color:
-                            "#334155",
-
-                          textAlign:
-                            "center",
-
-                          padding:
-                            "30px",
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              fontSize:
-                                "18px",
-
-                              fontWeight:
-                                800,
-
-                              color:
-                                "#0f172a",
-                            }}
-                          >
-                            No map-ready cadastral
-                            structures found
-                          </div>
-
-                          <div
-                            style={{
-                              marginTop:
-                                "8px",
-
-                              fontSize:
-                                "13px",
-
-                              color:
-                                "#64748b",
-
-                              maxWidth:
-                                "500px",
-                            }}
-                          >
-                            The database contains{" "}
-                            {
-                              buildingList.length
-                            }{" "}
-                            record
-                            {buildingList.length ===
-                            1
-                              ? ""
-                              : "s"}
-                            , but none currently
-                            have valid latitude and
-                            longitude coordinates.
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </section>
-                ) : (
-                  <div
-                    id="selected-building-view"
-                    style={{
-                      display:
-                        "flex",
-
-                      flexDirection:
-                        "column",
-
-                      gap:
-                        "24px",
-                    }}
-                  >
+                  <div className="mt-3 flex gap-1.5 flex-wrap">
                     <button
                       type="button"
-                      onClick={
-                        handleBackToMap
-                      }
-                      style={{
-                        alignSelf:
-                          "flex-start",
-
-                        padding:
-                          "9px 15px",
-
-                        borderRadius:
-                          "9px",
-
-                        border:
-                          "1px solid #334155",
-
-                        background:
-                          "#111827",
-
-                        color:
-                          "#cbd5e1",
-
-                        fontSize:
-                          "12px",
-
-                        fontWeight:
-                          700,
-
-                        cursor:
-                          "pointer",
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(item.id, "PENDING_REVIEW");
                       }}
+                      className="rounded bg-[#1f3a2f] px-2 py-1 text-[10px] font-semibold text-[#a8c3b5] hover:text-white"
                     >
-                      ← Back to Map
+                      Reset
                     </button>
-
-                    <section
-                      style={{
-                        background:
-                          "linear-gradient(135deg,#111827,#0f172a)",
-
-                        border:
-                          "1px solid #263247",
-
-                        borderRadius:
-                          "16px",
-
-                        padding:
-                          "22px",
-
-                        boxShadow:
-                          "0 10px 30px rgba(0,0,0,0.12)",
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(item.id, "REJECTED");
                       }}
+                      className="rounded bg-[#881337] px-2 py-1 text-[10px] font-semibold text-white hover:bg-[#450a0a]"
                     >
-                      <div
-                        style={{
-                          display:
-                            "flex",
-
-                          justifyContent:
-                            "space-between",
-
-                          alignItems:
-                            "center",
-
-                          gap:
-                            "20px",
-
-                          flexWrap:
-                            "wrap",
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              fontSize:
-                                "25px",
-
-                              fontWeight:
-                                800,
-
-                              color:
-                                "#f8fafc",
-                            }}
-                          >
-                            {
-                              building.name
-                            }
-                          </div>
-
-                          <div
-                            style={{
-                              marginTop:
-                                "6px",
-
-                              fontSize:
-                                "12px",
-
-                              color:
-                                "#94a3b8",
-                            }}
-                          >
-                            {
-                              building.address ||
-                              "Cadastral building"
-                            }
-                          </div>
-
-                          {building.georeference && (
-                            <div
-                              style={{
-                                marginTop:
-                                  "7px",
-
-                                fontSize:
-                                  "10px",
-
-                                color:
-                                  "#64748b",
-                              }}
-                            >
-                              📍{" "}
-                              {building.georeference.latitude.toFixed(
-                                6
-                              )}
-                              ,{" "}
-                              {building.georeference.longitude.toFixed(
-                                6
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <div
-                          style={{
-                            padding:
-                              "7px 11px",
-
-                            borderRadius:
-                              "999px",
-
-                            background:
-                              "#064e3b",
-
-                            color:
-                              "#6ee7b7",
-
-                            fontSize:
-                              "10px",
-
-                            fontWeight:
-                              800,
-                          }}
-                        >
-                          ✓ VERIFIED RECORD
-                        </div>
-                      </div>
-                    </section>
-
-                    <ULPINSearch
-                      building={
-                        building
-                      }
-
-                      onSelectProperty={(
-                        id
-                      ) =>
-                        handlePropertyNavigate(
-                          id
-                        )
-                      }
-                    />
-
-                    <div
-                      style={{
-                        display:
-                          "grid",
-
-                        gridTemplateColumns:
-                          "minmax(0,1fr) minmax(0,1fr)",
-
-                        gap:
-                          "20px",
-
-                        width:
-                          "100%",
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(item.id);
                       }}
+                      className="rounded bg-[#450a0a] px-2 py-1 text-[10px] font-semibold text-[#fca5a5]"
                     >
-                      <section
-                        style={{
-                          background:
-                            "rgba(15,23,42,0.6)",
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </aside>
 
-                          border:
-                            "1px solid #1e293b",
+          <section className="flex flex-col gap-6">
+            {building ? (
+              <>
+                <TopologyValidator building={building} />
+                <SurveyorApprovalPanel
+                  building={building}
+                  onVerificationComplete={handleVerificationComplete}
+                />
 
-                          borderRadius:
-                            "12px",
-
-                          padding:
-                            "20px",
-
-                          minWidth:
-                            0,
-
-                          overflow:
-                            "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize:
-                              "16px",
-
-                            fontWeight:
-                              800,
-                          }}
-                        >
-                          3D Building Model
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop:
-                              "16px",
-
-                            height:
-                              "460px",
-
-                            borderRadius:
-                              "10px",
-
-                            overflow:
-                              "hidden",
-
-                            background:
-                              "#020617",
-
-                            border:
-                              "1px solid #1e293b",
-                          }}
-                        >
-                          <VolumetricViewer
-                            building={
-                              building
-                            }
-
-                            selectedPropertyId={
-                              selectedProperty
-                            }
-
-                            onPropertySelect={(
-                              property
-                            ) =>
-                              handlePropertySelect(
-                                property.id
-                              )
-                            }
-                          />
-                        </div>
-                      </section>
-
-                      <section
-                        style={{
-                          background:
-                            "rgba(15,23,42,0.6)",
-
-                          border:
-                            "1px solid #1e293b",
-
-                          borderRadius:
-                            "12px",
-
-                          padding:
-                            "20px",
-
-                          minWidth:
-                            0,
-
-                          overflow:
-                            "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display:
-                              "flex",
-
-                            justifyContent:
-                              "space-between",
-
-                            alignItems:
-                              "center",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize:
-                                "16px",
-
-                              fontWeight:
-                                800,
-                            }}
-                          >
-                            Cadastral Graph
-                          </div>
-
-                          <div
-                            style={{
-                              padding:
-                                "4px 8px",
-
-                              borderRadius:
-                                "999px",
-
-                              background:
-                                "#172033",
-
-                              color:
-                                "#93c5fd",
-
-                              fontSize:
-                                "9px",
-
-                              fontWeight:
-                                700,
-                            }}
-                          >
-                            SELECTED
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop:
-                              "16px",
-
-                            height:
-                              "460px",
-
-                            borderRadius:
-                              "10px",
-
-                            overflow:
-                              "auto",
-
-                            background:
-                              "#020617",
-
-                            border:
-                              "1px solid #1e293b",
-                          }}
-                        >
-                          <CadastralGraph
-                            building={
-                              building
-                            }
-
-                            selectedNodeId={
-                              selectedProperty
-                            }
-
-                            onNodeSelect={(
-                              nodeId
-                            ) =>
-                              handlePropertySelect(
-                                nodeId
-                              )
-                            }
-                          />
-                        </div>
-                      </section>
-                    </div>
-
-                    <section>
-                      <div
-                        style={{
-                          display:
-                            "flex",
-
-                          justifyContent:
-                            "space-between",
-
-                          alignItems:
-                            "center",
-
-                          marginBottom:
-                            "12px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize:
-                              "17px",
-
-                            fontWeight:
-                              800,
-                          }}
-                        >
-                          Real-World Cadastral
-                          Map
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize:
-                              "11px",
-
-                            color:
-                              "#64748b",
-                          }}
-                        >
-                          Selected building
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          height:
-                            "700px",
-
-                          width:
-                            "100%",
-
-                          borderRadius:
-                            "16px",
-
-                          overflow:
-                            "hidden",
-
-                          border:
-                            "1px solid #1e293b",
-                        }}
-                      >
-                        <RealWorldMapViewer
-                          key={
-                            building.id
-                          }
-
-                          building={
-                            building
-                          }
-
-                          approvalStatus="APPROVED"
-
-                          onPropertyNavigate={
-                            handlePropertyNavigate
-                          }
-
-                          onPropertySelect={
-                            handlePropertySelect
-                          }
-                        />
-                      </div>
-                    </section>
-
-                    <ExportPanel
-                      building={
-                        building
-                      }
+                <Card variant="dark" title="2D/3D Cadastral Map Verification">
+                  <div className="relative w-full h-[600px] rounded-xl overflow-hidden border border-[#1f3a2f]">
+                    <RealWorldMapViewer
+                      key={building.id}
+                      building={building}
+                      approvalStatus={verification?.status || "PENDING_REVIEW"}
+                      onPropertyNavigate={handlePropertyNavigate}
+                      onPropertySelect={handlePropertySelect}
                     />
                   </div>
-                )}
+                </Card>
               </>
-            )}
-
-            {/* ==================================================
-                UPLOADER PORTAL
-                ================================================== */}
-
-            {roleMode ===
-              "UPLOADER" && (
-              <section
-                style={{
-                  background:
-                    "rgba(15,23,42,0.6)",
-
-                  padding:
-                    "24px",
-
-                  borderRadius:
-                    "12px",
-
-                  border:
-                    "1px solid #1e293b",
-                }}
-              >
-                <h3
-                  style={{
-                    margin:
-                      "0 0 6px",
-
-                    fontSize:
-                      "18px",
-
-                    color:
-                      "#f8fafc",
-                  }}
-                >
-                  Upload Revisions &
-                  Field Drawings
-                </h3>
-
-                <div
-                  style={{
-                    marginBottom:
-                      "18px",
-
-                    fontSize:
-                      "11px",
-
-                    color:
-                      "#64748b",
-                  }}
-                >
-                  Submit cadastral plans
-                  for surveyor verification.
+            ) : (
+              <Card variant="dark">
+                <div className="text-center py-16 text-[#a8c3b5]">
+                  Select a cadastral record from the side panel to inspect topology and issue ULPIN verification.
                 </div>
-
-                <FileUploader
-                  onParsed={
-                    handleParsed
-                  }
-                />
-              </section>
+              </Card>
             )}
-          </div>
-        )}
-      </div>
-    </main>
+          </section>
+        </div>
+      ) : (
+        /* PUBLIC VIEWER OR UPLOADER PORTAL */
+        <div className="w-full h-full">
+          {roleMode === "PUBLIC_VIEWER" && (
+            <>
+              {!building ? (
+                <section className="w-full h-[calc(100vh-80px)] min-h-[600px] relative overflow-hidden">
+                  <RealWorldMapViewer
+                    buildings={publicMapBuildings}
+                    onBuildingSelect={handlePublicBuildingSelect}
+                  />
+                  {loadingDb && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/90 px-4 py-1.5 text-xs font-semibold text-[#2d6a4f] shadow-md backdrop-blur-md flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-[#2d6a4f] animate-pulse" />
+                      Loading BhuVista cadastral registry...
+                    </div>
+                  )}
+                  {mapLocationNotice && (
+                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 rounded-full border border-amber-300 bg-amber-50 px-5 py-2 text-xs font-bold text-amber-800 shadow-lg backdrop-blur-md flex items-center gap-2">
+                      <span>⚠️ {mapLocationNotice}</span>
+                      <button
+                        type="button"
+                        onClick={() => setMapLocationNotice(null)}
+                        className="ml-2 font-bold hover:text-amber-950"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </section>
+              ) : (
+                <div id="selected-building-view" className="flex flex-col gap-6 p-6">
+                  <Button variant="outline" size="sm" onClick={handleBackToMap} className="self-start">
+                    ← Back to National Map
+                  </Button>
+
+                  <Card variant="dark">
+                    <div className="flex justify-between items-start flex-wrap gap-4">
+                      <div>
+                        <h2 className="text-2xl font-extrabold text-white">
+                          {building.name}
+                        </h2>
+                        {building.georeference && (
+                          <p className="mt-1 text-xs text-[#a8c3b5]">
+                            📍 Lat: {building.georeference.latitude.toFixed(6)}, Lng: {building.georeference.longitude.toFixed(6)}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant="success" size="md">
+                        ✓ VERIFIED CADASTRAL RECORD
+                      </Badge>
+                    </div>
+                  </Card>
+
+                  <ULPINSearch
+                    building={building}
+                    onSelectProperty={(id) => handlePropertyNavigate(id)}
+                  />
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card variant="dark" title="3D Volumetric Property Model">
+                      <div className="h-[460px] rounded-xl overflow-hidden bg-[#060b09] border border-[#1f3a2f]">
+                        <VolumetricViewer
+                          building={building}
+                          selectedPropertyId={selectedProperty}
+                          onPropertySelect={(p) => handlePropertySelect(p.id)}
+                        />
+                      </div>
+                    </Card>
+
+                    <Card variant="dark" title="Vertical Cadastral Graph">
+                      <div className="h-[460px] rounded-xl overflow-auto bg-[#060b09] border border-[#1f3a2f]">
+                        <CadastralGraph
+                          building={building}
+                          selectedNodeId={selectedProperty}
+                          onNodeSelect={(nodeId) => handlePropertySelect(nodeId)}
+                        />
+                      </div>
+                    </Card>
+                  </div>
+
+                  <Card variant="dark" title="Real-World GIS Map">
+                    <div className="h-[600px] w-full rounded-xl overflow-hidden border border-[#1f3a2f]">
+                      <RealWorldMapViewer
+                        key={building.id}
+                        building={building}
+                        approvalStatus="APPROVED"
+                        onPropertyNavigate={handlePropertyNavigate}
+                        onPropertySelect={handlePropertySelect}
+                      />
+                    </div>
+                  </Card>
+
+                  <ExportPanel building={building} />
+                </div>
+              )}
+            </>
+          )}
+
+          {roleMode === "UPLOADER" && (
+            <Card variant="dark" title="Submit Field Drawings & Survey Revisions">
+              <p className="text-xs text-[#a8c3b5] mb-4">
+                Submit GeoJSON or cadastral floorplan files into the BhuVista surveyor queue.
+              </p>
+              <FileUploader onParsed={handleParsed} />
+            </Card>
+          )}
+        </div>
+      )}
+    </PageShell>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#f8f5ee] text-[#2d6a4f] text-xs font-bold">
+          Loading BhuVista Viewer...
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

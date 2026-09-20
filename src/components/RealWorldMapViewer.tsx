@@ -26,6 +26,21 @@ setWorkerUrl(
    TYPES
    ============================================================ */
 
+interface SearchResultItem {
+  id: string;
+  type: "PROPERTY" | "BUILDING";
+  title: string;
+  subtitle: string;
+  landUse?: string;
+  area?: number;
+  ulpin?: string;
+  unitNumber?: string;
+  buildingName: string;
+  building: ParsedBuilding;
+  unit?: Property2D;
+  coordinates: [number, number];
+}
+
 interface RealWorldMapViewerProps {
   /**
    * Single-building mode.
@@ -137,16 +152,23 @@ function getXY(
     ];
   }
 
+  const obj = point as {
+    x?: number;
+    y?: number;
+    lng?: number;
+    lat?: number;
+  };
+
   return [
     Number(
-      point.x ??
-        point.lng ??
+      obj.x ??
+        obj.lng ??
         0
     ) || 0,
 
     Number(
-      point.y ??
-        point.lat ??
+      obj.y ??
+        obj.lat ??
         0
     ) || 0,
   ];
@@ -352,11 +374,6 @@ function normalizeBuilding(
       input?.title ??
       "Cadastral Building",
 
-    address:
-      input?.address ??
-      input?.location ??
-      "",
-
     ...(hasCoordinates
       ? {
           georeference: {
@@ -520,8 +537,26 @@ export default function RealWorldMapViewer({
   const [is3D, setIs3D] =
     useState(true);
 
+  const [showParcels, setShowParcels] =
+    useState(true);
+
   const [rotating, setRotating] =
     useState(false);
+
+  const [searchQuery, setSearchQuery] =
+    useState("");
+
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] =
+    useState(false);
+
+  const [selectedUnitDetails, setSelectedUnitDetails] =
+    useState<Property2D | null>(null);
+
+  const [selectedBuildingDetails, setSelectedBuildingDetails] =
+    useState<ParsedBuilding | null>(null);
+
+  const [activeSelectedFeatureId, setActiveSelectedFeatureId] =
+    useState<string | null>(null);
 
   /**
    * Normalize incoming records.
@@ -571,6 +606,169 @@ export default function RealWorldMapViewer({
       normalizedBuildings,
     ]);
 
+  /**
+   * Calculate public search matches across buildings and property units.
+   */
+  const searchResults = useMemo<SearchResultItem[]>(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    const items: SearchResultItem[] = [];
+
+    for (const b of mapBuildings) {
+      const anchor = b.georeference;
+      if (!anchor) continue;
+
+      // Building name or ID match
+      const bNameMatch = b.name?.toLowerCase().includes(query);
+      const bIdMatch = b.id.toLowerCase().includes(query);
+
+      if (bNameMatch || bIdMatch) {
+        items.push({
+          id: `bld-${b.id}`,
+          type: "BUILDING",
+          title: b.name || "Cadastral Building",
+          subtitle: `${b.floors?.length || 0} Levels • Verified Cadastre`,
+          buildingName: b.name || "Cadastral Building",
+          building: b,
+          coordinates: [anchor.longitude, anchor.latitude],
+        });
+      }
+
+      // Units match across floors
+      for (const floor of b.floors ?? []) {
+        for (const unit of floor.units ?? []) {
+          const uUlpinMatch = unit.ulpin?.toLowerCase().includes(query);
+          const uNumMatch = unit.unitNumber.toLowerCase().includes(query);
+          const uSpaceMatch = unit.spaceType?.toLowerCase().includes(query);
+          const uIdMatch = unit.id.toLowerCase().includes(query);
+
+          if (uUlpinMatch || uNumMatch || uSpaceMatch || uIdMatch) {
+            let centerLng = anchor.longitude;
+            let centerLat = anchor.latitude;
+
+            const rawPoly = Array.isArray(unit.polygon) ? unit.polygon : [];
+            if (rawPoly.length >= 3) {
+              const geographic = isProbablyGeographic(
+                rawPoly as PointLike[],
+                anchor.longitude,
+                anchor.latitude
+              );
+
+              let sumX = 0;
+              let sumY = 0;
+              rawPoly.forEach((pt) => {
+                const [x, y] = getXY(pt as PointLike);
+                sumX += x;
+                sumY += y;
+              });
+              const avgX = sumX / rawPoly.length;
+              const avgY = sumY / rawPoly.length;
+
+              if (geographic) {
+                centerLng = avgX;
+                centerLat = avgY;
+              } else {
+                const [lng, lat] = localToLngLat(
+                  avgX,
+                  avgY,
+                  anchor.longitude,
+                  anchor.latitude
+                );
+                centerLng = lng;
+                centerLat = lat;
+              }
+            }
+
+            items.push({
+              id: `${b.id}-${unit.id}`,
+              type: "PROPERTY",
+              title: unit.ulpin || `Survey / Unit ${unit.unitNumber}`,
+              subtitle: `${b.name} • Floor ${floor.floorNumber}${unit.spaceType ? ` • ${unit.spaceType}` : ""}`,
+              landUse: unit.spaceType,
+              area: unit.area,
+              ulpin: unit.ulpin,
+              unitNumber: unit.unitNumber,
+              buildingName: b.name || "Cadastral Building",
+              building: b,
+              unit: unit,
+              coordinates: [centerLng, centerLat],
+            });
+          }
+        }
+      }
+    }
+
+    return items;
+  }, [mapBuildings, searchQuery]);
+
+  /**
+   * Handle selecting a property or building result from search dropdown.
+   */
+  const handleSelectSearchResult = (result: SearchResultItem) => {
+    setIsSearchDropdownOpen(false);
+    const map = mapRef.current;
+
+    if (result.type === "PROPERTY" && result.unit) {
+      setSelectedUnitDetails(result.unit);
+      setSelectedBuildingDetails(result.building);
+      onPropertySelect?.(result.unit);
+
+      const featureId = `${result.building.id}-${result.unit.id}`;
+      if (map && map.getSource(SOURCE_ID)) {
+        if (activeSelectedFeatureId) {
+          map.setFeatureState(
+            { source: SOURCE_ID, id: activeSelectedFeatureId },
+            { selected: false }
+          );
+        }
+        map.setFeatureState(
+          { source: SOURCE_ID, id: featureId },
+          { selected: true }
+        );
+        setActiveSelectedFeatureId(featureId);
+      }
+
+      if (map) {
+        map.flyTo({
+          center: result.coordinates,
+          zoom: 18.5,
+          pitch: is3D ? 55 : 0,
+          duration: 900,
+        });
+      }
+    } else if (result.type === "BUILDING") {
+      setSelectedUnitDetails(null);
+      setSelectedBuildingDetails(result.building);
+      onBuildingSelect?.(result.building);
+
+      if (map) {
+        map.flyTo({
+          center: result.coordinates,
+          zoom: 17,
+          pitch: is3D ? 50 : 0,
+          duration: 900,
+        });
+      }
+    }
+  };
+
+  /**
+   * Clear active selection and remove map highlights.
+   */
+  const handleClearSelection = () => {
+    setSelectedUnitDetails(null);
+    setSelectedBuildingDetails(null);
+    const map = mapRef.current;
+    if (map && map.getSource(SOURCE_ID) && activeSelectedFeatureId) {
+      map.setFeatureState(
+        { source: SOURCE_ID, id: activeSelectedFeatureId },
+        { selected: false }
+      );
+    }
+    setActiveSelectedFeatureId(null);
+  };
+
   const multiBuildingMode =
     buildings.length > 0;
 
@@ -594,7 +792,7 @@ export default function RealWorldMapViewer({
           for (const unit of
             floor.units ??
             []) {
-            let rawPolygon =
+            const rawPolygon =
               Array.isArray(
                 unit.polygon
               )
@@ -680,49 +878,36 @@ export default function RealWorldMapViewer({
             const space =
               `${unit.spaceType ?? ""} ${unit.unitNumber ?? ""}`.toLowerCase();
 
-            let fillColor =
-              "#2563eb";
+            // Earthy forest green & natural tones strictly conforming to BhuVista design system
+            let fillColor = "#2d6a4f"; // Forest Green (default structure/residential)
 
             if (
-              space.includes(
-                "stair"
-              ) ||
-              space.includes(
-                "staircase"
-              )
+              space.includes("stair") ||
+              space.includes("staircase")
             ) {
-              fillColor =
-                "#f97316";
+              fillColor = "#d4a373"; // Warm Sand / Earthy Gold
             } else if (
-              space.includes(
-                "lift"
-              ) ||
-              space.includes(
-                "elevator"
-              )
+              space.includes("lift") ||
+              space.includes("elevator")
             ) {
-              fillColor =
-                "#8b5cf6";
+              fillColor = "#52b788"; // Sage Accent
             } else if (
-              space.includes(
-                "corridor"
-              ) ||
-              space.includes(
-                "passage"
-              )
+              space.includes("corridor") ||
+              space.includes("passage")
             ) {
-              fillColor =
-                "#64748b";
+              fillColor = "#74c69d"; // Soft Meadow Green
             } else if (
-              space.includes(
-                "toilet"
-              ) ||
-              space.includes(
-                "restroom"
-              )
+              space.includes("toilet") ||
+              space.includes("restroom") ||
+              space.includes("utility")
             ) {
-              fillColor =
-                "#ec4899";
+              fillColor = "#b7b7a4"; // Muted Earth Grey/Taupe
+            } else if (
+              space.includes("commercial") ||
+              space.includes("office") ||
+              space.includes("shop")
+            ) {
+              fillColor = "#1b4332"; // Deep Pine
             }
 
             const base =
@@ -944,63 +1129,40 @@ export default function RealWorldMapViewer({
    * is enough to create a visible structure marker.
    */
   useEffect(() => {
-    if (
-      !containerRef.current
-    ) {
+    if (!containerRef.current) {
       return;
     }
 
-    if (
-      mapBuildings.length ===
-      0
-    ) {
+    if (mapRef.current) {
       return;
     }
 
-    if (
-      mapRef.current
-    ) {
-      return;
-    }
+    const anchorLng =
+      mapBuildings.length > 0
+        ? mapBuildings[0].georeference!.longitude
+        : 73.8567;
 
-    const first =
-      mapBuildings[0];
-
-    const anchor =
-      first.georeference!;
+    const anchorLat =
+      mapBuildings.length > 0
+        ? mapBuildings[0].georeference!.latitude
+        : 18.5204;
 
     const map = new Map({
-      container:
-        containerRef.current,
+      container: containerRef.current,
 
-      style:
-        "https://tiles.openfreemap.org/styles/bright",
+      style: "https://tiles.openfreemap.org/styles/bright",
 
-      center: [
-        anchor.longitude,
-        anchor.latitude,
-      ],
+      center: [anchorLng, anchorLat],
 
-      zoom:
-        multiBuildingMode
-          ? 13
-          : 16,
+      zoom: mapBuildings.length > 0 ? (multiBuildingMode ? 13 : 16) : 12,
 
       minZoom: 3,
 
       maxZoom: 22,
 
-      pitch:
-        multiBuildingMode
-          ? 42
-          : 55,
+      pitch: mapBuildings.length > 0 ? (multiBuildingMode ? 42 : 55) : 30,
 
       bearing: 0,
-
-      antialias: true,
-
-      attributionControl:
-        true,
     });
 
     mapRef.current =
@@ -1065,6 +1227,90 @@ export default function RealWorldMapViewer({
       ?.longitude,
     multiBuildingMode,
   ]);
+
+  /**
+   * ----------------------------------------------------------
+   * SINGLE BUILDING BOUNDS
+   * ----------------------------------------------------------
+   */
+  const getSingleBuildingBounds = (
+    target: ParsedBuilding
+  ) => {
+    if (
+      !target.georeference
+    ) {
+      return null;
+    }
+
+    const anchor =
+      target.georeference;
+
+    const bounds =
+      new LngLatBounds();
+
+    bounds.extend([
+      anchor.longitude,
+      anchor.latitude,
+    ]);
+
+    for (const floor of
+      target.floors ??
+      []) {
+      for (const unit of
+        floor.units ??
+        []) {
+        const polygon =
+          Array.isArray(
+            unit.polygon
+          )
+            ? unit.polygon
+            : [];
+
+        if (
+          polygon.length <
+          3
+        ) {
+          continue;
+        }
+
+        const geographic =
+          isProbablyGeographic(
+            polygon as PointLike[],
+            anchor.longitude,
+            anchor.latitude
+          );
+
+        for (const point of polygon) {
+          const [
+            x,
+            y,
+          ] =
+            getXY(
+              point as PointLike
+            );
+
+          const coordinate =
+            geographic
+              ? [x, y]
+              : localToLngLat(
+                  x,
+                  y,
+                  anchor.longitude,
+                  anchor.latitude
+                );
+
+          bounds.extend(
+            coordinate as [
+              number,
+              number
+            ]
+          );
+        }
+      }
+    }
+
+    return bounds;
+  };
 
   /**
    * ----------------------------------------------------------
@@ -1142,10 +1388,10 @@ export default function RealWorldMapViewer({
         "9px";
 
       element.style.background =
-        "linear-gradient(135deg,#2563eb,#1d4ed8)";
+        "linear-gradient(135deg, #2d6a4f, #1b4332)";
 
       element.style.boxShadow =
-        "0 5px 18px rgba(37,99,235,0.55)";
+        "0 5px 18px rgba(45,106,79,0.45)";
 
       element.style.cursor =
         "pointer";
@@ -1351,90 +1597,6 @@ export default function RealWorldMapViewer({
 
   /**
    * ----------------------------------------------------------
-   * SINGLE BUILDING BOUNDS
-   * ----------------------------------------------------------
-   */
-  function getSingleBuildingBounds(
-    target: ParsedBuilding
-  ) {
-    if (
-      !target.georeference
-    ) {
-      return null;
-    }
-
-    const anchor =
-      target.georeference;
-
-    const bounds =
-      new LngLatBounds();
-
-    bounds.extend([
-      anchor.longitude,
-      anchor.latitude,
-    ]);
-
-    for (const floor of
-      target.floors ??
-      []) {
-      for (const unit of
-        floor.units ??
-        []) {
-        const polygon =
-          Array.isArray(
-            unit.polygon
-          )
-            ? unit.polygon
-            : [];
-
-        if (
-          polygon.length <
-          3
-        ) {
-          continue;
-        }
-
-        const geographic =
-          isProbablyGeographic(
-            polygon as PointLike[],
-            anchor.longitude,
-            anchor.latitude
-          );
-
-        for (const point of polygon) {
-          const [
-            x,
-            y,
-          ] =
-            getXY(
-              point as PointLike
-            );
-
-          const coordinate =
-            geographic
-              ? [x, y]
-              : localToLngLat(
-                  x,
-                  y,
-                  anchor.longitude,
-                  anchor.latitude
-                );
-
-          bounds.extend(
-            coordinate as [
-              number,
-              number
-            ]
-          );
-        }
-      }
-    }
-
-    return bounds;
-  }
-
-  /**
-   * ----------------------------------------------------------
    * CADASTRAL POLYGON LAYERS
    * ----------------------------------------------------------
    */
@@ -1521,17 +1683,24 @@ export default function RealWorldMapViewer({
       source:
         SOURCE_ID,
 
-      paint: {
-        "fill-color":
-          [
-            "get",
-            "fillColor",
-          ],
+      layout: {
+        visibility: showParcels ? "visible" : "none",
+      },
 
-        "fill-opacity":
-          multiBuildingMode
-            ? 0.78
-            : 0.32,
+      paint: {
+        "fill-color": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          "#d4a373", // Warm earthy gold highlight for selected unit/parcel
+          ["get", "fillColor"],
+        ],
+
+        "fill-opacity": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          0.65,
+          multiBuildingMode ? 0.35 : 0.25,
+        ],
       },
     });
 
@@ -1545,12 +1714,17 @@ export default function RealWorldMapViewer({
       source:
         SOURCE_ID,
 
+      layout: {
+        visibility: is3D ? "visible" : "none",
+      },
+
       paint: {
-        "fill-extrusion-color":
-          [
-            "get",
-            "fillColor",
-          ],
+        "fill-extrusion-color": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          "#d4a373", // Warm earthy gold highlight for selected 3D building
+          ["get", "fillColor"],
+        ],
 
         "fill-extrusion-base":
           [
@@ -1574,8 +1748,8 @@ export default function RealWorldMapViewer({
 
         "fill-extrusion-opacity":
           multiBuildingMode
-            ? 0.9
-            : 0.88,
+            ? 0.85
+            : 0.8,
 
         "fill-extrusion-vertical-gradient":
           true,
@@ -1592,12 +1766,24 @@ export default function RealWorldMapViewer({
       source:
         SOURCE_ID,
 
-      paint: {
-        "line-color":
-          "#0f172a",
+      layout: {
+        visibility: showParcels ? "visible" : "none",
+      },
 
-        "line-width":
-          2.1,
+      paint: {
+        "line-color": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          "#1b4332", // Strong forest green boundary when selected
+          "#2d6a4f", // Restrained BhuVista green parcel boundary
+        ],
+
+        "line-width": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          3.5,
+          2.0,
+        ],
 
         "line-opacity":
           0.95,
@@ -1606,9 +1792,21 @@ export default function RealWorldMapViewer({
 
     /**
      * --------------------------------------------------------
-     * POLYGON CLICK
+     * POLYGON CLICK & UNSELECT ON EMPTY CANVAS
      * --------------------------------------------------------
      */
+    let selectedFeatureId: string | number | null = null;
+
+    const clearFeatureSelection = () => {
+      if (selectedFeatureId !== null && map.getSource(SOURCE_ID)) {
+        map.setFeatureState(
+          { source: SOURCE_ID, id: selectedFeatureId },
+          { selected: false }
+        );
+        selectedFeatureId = null;
+      }
+    };
+
     const handlePolygonClick =
       (event: any) => {
         const features =
@@ -1625,12 +1823,22 @@ export default function RealWorldMapViewer({
         if (
           !features.length
         ) {
+          clearFeatureSelection();
+          setSelectedUnitDetails(null);
           return;
         }
 
-        const properties =
-          features[0]
-            ?.properties;
+        const feature = features[0];
+        const properties = feature?.properties;
+
+        if (feature.id !== undefined) {
+          clearFeatureSelection();
+          selectedFeatureId = feature.id;
+          map.setFeatureState(
+            { source: SOURCE_ID, id: feature.id },
+            { selected: true }
+          );
+        }
 
         if (
           !properties
@@ -1699,77 +1907,11 @@ export default function RealWorldMapViewer({
           unit
         );
 
+        setSelectedUnitDetails(unit);
+
         onPropertyNavigate?.(
           unit
         );
-
-        new Popup({
-          closeButton:
-            true,
-          closeOnClick:
-            true,
-          maxWidth:
-            "320px",
-        })
-          .setLngLat(
-            event.lngLat
-          )
-          .setHTML(
-            `
-              <div
-                style="
-                  font-family:system-ui,sans-serif;
-                  color:#0f172a;
-                  padding:6px;
-                "
-              >
-                <div
-                  style="
-                    font-size:16px;
-                    font-weight:800;
-                  "
-                >
-                  Unit ${
-                    unit.unitNumber ||
-                    "—"
-                  }
-                </div>
-
-                <div
-                  style="
-                    margin-top:6px;
-                    font-size:12px;
-                    line-height:1.7;
-                    color:#64748b;
-                  "
-                >
-                  <div>
-                    Floor:
-                    ${
-                      unit.floorNumber
-                    }
-                  </div>
-
-                  <div>
-                    Area:
-                    ${
-                      unit.area ||
-                      "—"
-                    } m²
-                  </div>
-
-                  <div>
-                    ULPIN:
-                    ${
-                      unit.ulpin ||
-                      "Not assigned"
-                    }
-                  </div>
-                </div>
-              </div>
-            `
-          )
-          .addTo(map);
       };
 
     map.on(
@@ -1783,6 +1925,19 @@ export default function RealWorldMapViewer({
       FOOTPRINT_LAYER,
       handlePolygonClick
     );
+
+    // Unselect when clicking empty canvas
+    const handleMapClick = (event: any) => {
+      const features = map.queryRenderedFeatures(event.point, {
+        layers: [EXTRUSION_LAYER, FOOTPRINT_LAYER],
+      });
+      if (!features.length) {
+        clearFeatureSelection();
+        setSelectedUnitDetails(null);
+      }
+    };
+
+    map.on("click", handleMapClick);
 
     /**
      * Initial fit.
@@ -1801,6 +1956,8 @@ export default function RealWorldMapViewer({
         FOOTPRINT_LAYER,
         handlePolygonClick
       );
+
+      map.off("click", handleMapClick);
 
       if (
         map.getLayer(
@@ -1847,6 +2004,8 @@ export default function RealWorldMapViewer({
     mapBuildings,
     normalizedBuildings,
     multiBuildingMode,
+    is3D,
+    showParcels,
     onBuildingSelect,
     onPropertySelect,
     onPropertyNavigate,
@@ -1951,433 +2110,381 @@ export default function RealWorldMapViewer({
 
   /**
    * ----------------------------------------------------------
-   * EMPTY STATE
-   * ----------------------------------------------------------
-   *
-   * This is now much more informative.
-   */
-  if (
-    mapBuildings.length ===
-    0
-  ) {
-    return (
-      <div
-        style={{
-          width:
-            "100%",
-
-          height:
-            "100%",
-
-          minHeight:
-            "650px",
-
-          borderRadius:
-            "18px",
-
-          background:
-            "#e2e8f0",
-
-          display:
-            "flex",
-
-          alignItems:
-            "center",
-
-          justifyContent:
-            "center",
-        }}
-      >
-        <div
-          style={{
-            textAlign:
-              "center",
-
-            padding:
-              "30px",
-
-            maxWidth:
-              "560px",
-
-            background:
-              "#ffffff",
-
-            borderRadius:
-              "16px",
-
-            boxShadow:
-              "0 10px 35px rgba(0,0,0,0.10)",
-          }}
-        >
-          <div
-            style={{
-              fontSize:
-                "18px",
-
-              fontWeight:
-                800,
-
-              color:
-                "#0f172a",
-            }}
-          >
-            No map coordinates found
-          </div>
-
-          <div
-            style={{
-              marginTop:
-                "8px",
-
-              fontSize:
-                "13px",
-
-              lineHeight:
-                1.6,
-
-              color:
-                "#64748b",
-            }}
-          >
-            Database records received:
-            {" "}
-            {
-              normalizedBuildings.length
-            }
-            .
-            <br />
-            None contain a valid
-            latitude/longitude pair.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /**
-   * ----------------------------------------------------------
    * MAP UI
    * ----------------------------------------------------------
    */
   return (
-    <div
-      style={{
-        position:
-          "relative",
-
-        width:
-          "100%",
-
-        height:
-          "100%",
-
-        minHeight:
-          "650px",
-
-        borderRadius:
-          "18px",
-
-        overflow:
-          "hidden",
-
-        background:
-          "#dbeafe",
-      }}
-    >
-      {/* MAP */}
-
-      <div
-        ref={
-          containerRef
-        }
-        style={{
-          position:
-            "absolute",
-
-          inset:
-            0,
-        }}
-      />
+    <div className="relative w-full h-full min-h-[600px] overflow-hidden bg-[#d1e3d4]">
+      {/* MAP CANVAS */}
+      <div ref={containerRef} className="w-full h-full min-h-[600px]" />
 
       {/* ---------------------------------------------------- */}
-      {/* INFO PANEL */}
+      {/* FLOATING SEARCH BAR (TOP-LEFT) */}
       {/* ---------------------------------------------------- */}
-
-      <div
-        style={{
-          position:
-            "absolute",
-
-          top:
-            "18px",
-
-          left:
-            "18px",
-
-          zIndex:
-            20,
-
-          background:
-            "rgba(255,255,255,0.96)",
-
-          borderRadius:
-            "13px",
-
-          padding:
-            "12px 15px",
-
-          boxShadow:
-            "0 7px 22px rgba(0,0,0,0.14)",
-
-          pointerEvents:
-            "none",
-        }}
-      >
-        <div
-          style={{
-            fontSize:
-              "16px",
-
-            fontWeight:
-              800,
-
-            color:
-              "#111827",
+      <div className="absolute top-6 left-6 z-40 w-[520px] max-w-[calc(100vw-4rem)]">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (searchResults.length > 0) {
+              handleSelectSearchResult(searchResults[0]);
+            }
           }}
+          className="flex items-center rounded-full border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-2 shadow-lg backdrop-blur-md relative"
         >
-          {multiBuildingMode
-            ? "Public Cadastral Map"
-            : building?.name ??
-              "Cadastral Building"}
-        </div>
-
-        <div
-          style={{
-            marginTop:
-              "4px",
-
-            fontSize:
-              "11px",
-
-            color:
-              "#64748b",
-          }}
-        >
-          {multiBuildingMode
-            ? `${mapBuildings.length} structures visible`
-            : approvalStatus ??
-              "Cadastral structure"}
-        </div>
-
-        {multiBuildingMode && (
-          <div
-            style={{
-              marginTop:
-                "5px",
-
-              fontSize:
-                "11px",
-
-              color:
-                "#2563eb",
-
-              fontWeight:
-                700,
+          <div className="flex h-8 w-8 items-center justify-center text-[#2d6a4f] shrink-0">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search by ULPIN, Owner Name, Survey Number..."
+            value={searchQuery}
+            onFocus={() => setIsSearchDropdownOpen(true)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsSearchDropdownOpen(true);
             }}
-          >
-            Click a structure to explore
+            className="w-full bg-transparent px-3 py-1 text-xs text-[#162a21] placeholder-[#6b887a] outline-none font-medium"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setIsSearchDropdownOpen(false);
+              }}
+              title="Clear search"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#6b887a] hover:text-[#162a21] hover:bg-[#f3efe6] transition"
+            >
+              ✕
+            </button>
+          )}
+        </form>
+
+        {/* SEARCH RESULTS DROPDOWN */}
+        {isSearchDropdownOpen && searchQuery.trim().length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-[#fdfbf7] border border-[#e2dad0] rounded-2xl shadow-2xl p-2.5 max-h-80 overflow-y-auto backdrop-blur-md">
+            {searchResults.length > 0 ? (
+              <div className="space-y-1">
+                <div className="px-3 py-1.5 text-[11px] font-bold text-[#2d6a4f] uppercase tracking-wider border-b border-[#e2dad0]/60 flex items-center justify-between">
+                  <span>Matching Public Records</span>
+                  <span className="text-[10px] bg-[#2d6a4f]/10 text-[#2d6a4f] px-2 py-0.5 rounded-full font-extrabold">
+                    {searchResults.length}
+                  </span>
+                </div>
+
+                {searchResults.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleSelectSearchResult(item)}
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-[#f3efe6] cursor-pointer transition border border-transparent hover:border-[#e2dad0]"
+                  >
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-[#2d6a4f]/10 text-[#2d6a4f]">
+                          {item.type === "PROPERTY" ? "PARCEL" : "BUILDING"}
+                        </span>
+                        <span className="font-bold text-xs text-[#162a21] truncate">
+                          {item.title}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium text-[#6b887a] truncate mt-0.5">
+                        {item.subtitle}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-end shrink-0">
+                      {item.landUse && (
+                        <span className="text-[10px] font-semibold text-[#2d6a4f]">
+                          {item.landUse}
+                        </span>
+                      )}
+                      {item.area && (
+                        <span className="text-[10px] text-[#6b887a] font-medium">
+                          {item.area} m²
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-xs font-semibold text-[#6b887a] bg-[#f8f5ee] rounded-xl border border-[#e2dad0]">
+                No matching public records found.
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* CONTROLS */}
+      {/* FLOATING LOCATION CARD (TOP-RIGHT) */}
       {/* ---------------------------------------------------- */}
+      <div className="absolute top-6 right-6 z-30 hidden sm:flex items-center gap-3 rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 px-4 py-3 text-xs text-[#162a21] shadow-lg backdrop-blur-md">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f8f5ee] border border-[#e2dad0] text-[#2d6a4f] text-base">
+          📍
+        </div>
+        <div className="flex flex-col">
+          <span className="font-bold text-[#162a21] text-xs">
+            {building?.name || (multiBuildingMode && mapBuildings.length > 0 ? "National Cadastral Zone" : "BhuVista Public Viewer")}
+          </span>
+          <span className="text-[10px] font-semibold text-[#3d5a4c]">
+            {building?.georeference
+              ? `${building.georeference.latitude.toFixed(4)}° N, ${building.georeference.longitude.toFixed(4)}° E`
+              : "State Land Registry • Verified GIS"}
+          </span>
+        </div>
+      </div>
 
-      <div
-        style={{
-          position:
-            "absolute",
+      {/* ---------------------------------------------------- */}
+      {/* FLOATING PROPERTY DETAILS CARD (LOWER-LEFT) */}
+      {/* ---------------------------------------------------- */}
+      <div className="absolute bottom-8 left-6 z-30 w-[360px] max-w-[calc(100vw-3rem)] rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-5 text-[#162a21] shadow-xl backdrop-blur-md">
+        <div className="flex items-center justify-between border-b border-[#e2dad0] pb-3 mb-3">
+          <h4 className="text-sm font-bold text-[#162a21]">Property Details</h4>
+          {(selectedUnitDetails || selectedBuildingDetails) && (
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="text-xs font-semibold text-[#2d6a4f] hover:text-[#1b4332] bg-[#2d6a4f]/10 px-2 py-0.5 rounded-lg transition"
+            >
+              ✕ Clear Selection
+            </button>
+          )}
+        </div>
 
-          right:
-            "18px",
+        <div className="space-y-2.5 text-xs">
+          {selectedUnitDetails ? (
+            <>
+              {selectedUnitDetails.ulpin && (
+                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                  <span className="text-[#6b887a] font-medium">ULPIN</span>
+                  <span className="font-bold text-[#162a21]">{selectedUnitDetails.ulpin}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Survey / Unit #</span>
+                <span className="font-bold text-[#162a21]">{selectedUnitDetails.unitNumber}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Floor Level</span>
+                <span className="font-bold text-[#162a21]">Floor {selectedUnitDetails.floorNumber}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Land Use</span>
+                <span className="font-bold text-[#2d6a4f]">{selectedUnitDetails.spaceType || "Residential"}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Area</span>
+                <span className="font-bold text-[#162a21]">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Parent Structure</span>
+                <span className="font-bold text-[#162a21] truncate max-w-[180px]">
+                  {selectedBuildingDetails?.name || building?.name || "Cadastral Structure"}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Verification</span>
+                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+              </div>
 
-          bottom:
-            "120px",
+              <button
+                type="button"
+                onClick={() => onPropertyNavigate?.(selectedUnitDetails)}
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
+              >
+                View Full Details
+              </button>
+            </>
+          ) : selectedBuildingDetails ? (
+            <>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Structure Name</span>
+                <span className="font-bold text-[#162a21] truncate max-w-[180px]">{selectedBuildingDetails.name}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Floors</span>
+                <span className="font-bold text-[#162a21]">{selectedBuildingDetails.floors?.length || 0} Levels</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Status</span>
+                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+              </div>
 
-          zIndex:
-            30,
+              <button
+                type="button"
+                onClick={() => onBuildingSelect?.(selectedBuildingDetails)}
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
+              >
+                View Full Details
+              </button>
+            </>
+          ) : building ? (
+            <>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Structure Name</span>
+                <span className="font-bold text-[#162a21] truncate max-w-[180px]">{building.name}</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Floors</span>
+                <span className="font-bold text-[#162a21]">{building.floors?.length || 0} Levels</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Status</span>
+                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+              </div>
 
-          display:
-            "flex",
+              <button
+                type="button"
+                onClick={() => onBuildingSelect?.(building)}
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
+              >
+                View Full Details
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Registry Zone</span>
+                <span className="font-bold text-[#162a21]">National Cadastre</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">Active Parcels</span>
+                <span className="font-bold text-[#162a21]">{mapBuildings.length} Registered</span>
+              </div>
+              <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                <span className="text-[#6b887a] font-medium">GIS System</span>
+                <span className="font-bold text-[#2d6a4f]">MapLibre 3D</span>
+              </div>
 
-          flexDirection:
-            "column",
+              <button
+                type="button"
+                className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
+              >
+                View Full Details
+              </button>
+            </>
+          )}
+        </div>
+      </div>
 
-          gap:
-            "8px",
-        }}
-      >
+      {/* ---------------------------------------------------- */}
+      {/* FLOATING MAP CONTROLS & LAYER TOGGLES (RIGHT SIDE) */}
+      {/* ---------------------------------------------------- */}
+      <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2.5">
         <button
           type="button"
-          onClick={
-            zoomIn
-          }
-          title="Zoom in"
-          style={controlStyle}
+          onClick={fitAllBuildings}
+          title="Home / Center View"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-base font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
+        >
+          ⌂
+        </button>
+
+        <button
+          type="button"
+          onClick={zoomIn}
+          title="Zoom In"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-xl font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
         >
           +
         </button>
 
         <button
           type="button"
-          onClick={
-            zoomOut
-          }
-          title="Zoom out"
-          style={controlStyle}
+          onClick={zoomOut}
+          title="Zoom Out"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-xl font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
         >
           −
         </button>
 
         <button
           type="button"
-          onClick={
-            toggle3D
-          }
-          title="Toggle 2D / 3D"
-          style={{
-            ...controlStyle,
+          onClick={() => setShowParcels((prev) => !prev)}
+          title="Toggle Parcel Boundaries"
+          className={`flex h-11 w-11 items-center justify-center rounded-full border text-[10px] font-extrabold shadow-md transition cursor-pointer ${
+            showParcels
+              ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
+              : "border-[#e2dad0] bg-[#fdfbf7] text-[#2d6a4f] hover:bg-[#f3efe6]"
+          }`}
+        >
+          PARCEL
+        </button>
 
-            background:
-              is3D
-                ? "#111827"
-                : "#ffffff",
-
-            color:
-              is3D
-                ? "#ffffff"
-                : "#111827",
-
-            fontSize:
-              "12px",
-          }}
+        <button
+          type="button"
+          onClick={toggle3D}
+          title="Toggle 2D / 3D Mode"
+          className={`flex h-11 w-11 items-center justify-center rounded-full border text-xs font-extrabold shadow-md transition cursor-pointer ${
+            is3D
+              ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
+              : "border-[#e2dad0] bg-[#fdfbf7] text-[#2d6a4f] hover:bg-[#f3efe6]"
+          }`}
         >
           3D
         </button>
 
         <button
           type="button"
-          onClick={() =>
-            setRotating(
-              (value) =>
-                !value
-            )
-          }
-          title={
+          onClick={() => setRotating((value) => !value)}
+          title={rotating ? "Stop Rotation" : "Rotate Map"}
+          className={`flex h-11 w-11 items-center justify-center rounded-full border text-base font-bold shadow-md transition cursor-pointer ${
             rotating
-              ? "Stop rotation"
-              : "Rotate map"
-          }
-          style={{
-            ...controlStyle,
-
-            background:
-              rotating
-                ? "#2563eb"
-                : "#ffffff",
-
-            color:
-              rotating
-                ? "#ffffff"
-                : "#111827",
-
-            fontSize:
-              "20px",
-          }}
+              ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
+              : "border-[#e2dad0] bg-[#fdfbf7] text-[#2d6a4f] hover:bg-[#f3efe6]"
+          }`}
         >
           ↻
-        </button>
-
-        <button
-          type="button"
-          onClick={
-            fitAllBuildings
-          }
-          title="Show all structures"
-          style={{
-            ...controlStyle,
-
-            fontSize:
-              "18px",
-          }}
-        >
-          ⌂
         </button>
       </div>
 
       {/* ---------------------------------------------------- */}
+      {/* FLOATING MINIMAP (BOTTOM-RIGHT) */}
+      {/* ---------------------------------------------------- */}
+      <div className="absolute bottom-8 right-6 z-20 hidden md:block">
+        <div className="w-44 h-32 rounded-2xl border-2 border-white bg-[#f8f5ee] shadow-xl overflow-hidden relative border-[#e2dad0]">
+          <div className="absolute inset-0 bg-[#e5e0d8] opacity-80" />
+          <div className="absolute inset-2 rounded-xl border border-[#2d6a4f]/20 bg-[#fdfbf7]/60 flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center text-center p-1">
+              <span className="text-[10px] font-bold text-[#2d6a4f]">MINIMAP</span>
+              <span className="text-[9px] text-[#6b887a]">Overview Map</span>
+            </div>
+          </div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border border-[#2d6a4f] rounded-full flex items-center justify-center">
+            <div className="w-1 h-1 bg-[#2d6a4f] rounded-full" />
+          </div>
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------- */}
+      {/* UNOBTRUSIVE FLOATING NOTIFICATION OVERLAY */}
+      {/* ---------------------------------------------------- */}
+      {mapBuildings.length === 0 && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/95 px-5 py-2.5 text-xs font-semibold text-[#162a21] shadow-lg backdrop-blur-md flex items-center gap-2 text-center">
+          <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+          <span>No public cadastral parcels are available for this area.</span>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
       {/* LEGEND */}
       {/* ---------------------------------------------------- */}
-
-      <div
-        style={{
-          position:
-            "absolute",
-
-          left:
-            "18px",
-
-          bottom:
-            "18px",
-
-          zIndex:
-            20,
-
-          display:
-            "flex",
-
-          alignItems:
-            "center",
-
-          flexWrap:
-            "wrap",
-
-          gap:
-            "10px",
-
-          padding:
-            "10px 13px",
-
-          background:
-            "rgba(255,255,255,0.96)",
-
-          borderRadius:
-            "11px",
-
-          boxShadow:
-            "0 5px 18px rgba(0,0,0,0.12)",
-
-          fontSize:
-            "11px",
-
-          color:
-            "#374151",
-        }}
-      >
-        <LegendDot color="#2563eb" />
-
-        {multiBuildingMode
-          ? "Structures"
-          : "Units"}
-
-        <LegendDot color="#f97316" />
-
-        Stairs
-
-        <LegendDot color="#8b5cf6" />
-
-        Lift
+      <div className="absolute left-6 bottom-36 z-20 flex flex-wrap items-center gap-3 px-3.5 py-2 bg-[#fdfbf7]/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21] backdrop-blur-md">
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm border border-[#2d6a4f] bg-[#2d6a4f]/20 inline-block" />
+          <span className="font-semibold">Parcel</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm border-2 border-[#1b4332] bg-[#d4a373] inline-block" />
+          <span className="font-semibold">Selected</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <LegendDot color="#2d6a4f" />
+          <span className="font-semibold">3D Building</span>
+        </div>
       </div>
     </div>
   );
@@ -2386,51 +2493,6 @@ export default function RealWorldMapViewer({
 /* ============================================================
    UI HELPERS
    ============================================================ */
-
-const controlStyle: React.CSSProperties =
-  {
-    width:
-      "46px",
-
-    height:
-      "46px",
-
-    flexShrink:
-      0,
-
-    border:
-      "none",
-
-    borderRadius:
-      "11px",
-
-    background:
-      "#ffffff",
-
-    color:
-      "#111827",
-
-    boxShadow:
-      "0 5px 16px rgba(0,0,0,0.16)",
-
-    fontSize:
-      "25px",
-
-    fontWeight:
-      700,
-
-    cursor:
-      "pointer",
-
-    display:
-      "flex",
-
-    alignItems:
-      "center",
-
-    justifyContent:
-      "center",
-  };
 
 function LegendDot({
   color,
