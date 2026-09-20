@@ -3,6 +3,7 @@
 import { prisma } from "@/src/lib/prisma";
 import { requireGovernmentUser } from "@/src/lib/auth";
 import { revalidatePath } from "next/cache";
+import { validatePropertyRecord, ValidationResult } from "@/src/lib/validator";
 
 export interface GovernmentDashboardMetrics {
   totalBuildings: number;
@@ -154,6 +155,324 @@ export async function getGovernmentDashboardOverview() {
       success: false as const,
       status: 500,
       error: "Failed to retrieve Government dashboard overview.",
+      data: null,
+    };
+  }
+}
+
+// ==========================================
+// GIS QUALITY CONTROL & DATA VALIDATION
+// ==========================================
+
+export interface ValidationQueryOptions {
+  search?: string;
+  filterValidationStatus?: string; // "ALL" | "PASS" | "WARNING" | "FAIL"
+  filterVerificationStatus?: string; // "ALL" | "PENDING_REVIEW" | "APPROVED" | "REJECTED"
+  filterGeometryType?: string; // "ALL" | "Polygon" | "Volumetric 3D" | "No Geometry"
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface GovernmentValidationMetrics {
+  totalInspected: number;
+  passCount: number;
+  warningCount: number;
+  failCount: number;
+  qualityPassRate: number;
+}
+
+export interface GovernmentValidationItem {
+  id: string; // Property ID
+  unitNumber: string;
+  ulpin: string | null;
+  buildingId: string;
+  buildingName: string;
+  floorNumber: number;
+  elevation: number;
+  height: number;
+  area: number;
+  spaceType: string;
+  geometryType: string; // "Polygon" | "Volumetric 3D" | "No Geometry"
+  validationStatus: "PASS" | "WARNING" | "FAIL";
+  detectedIssue: string;
+  lastChecked: string;
+  verificationStatus: string; // "PENDING_REVIEW" | "APPROVED" | "REJECTED"
+  hasGeometry: boolean;
+  checksCount: number;
+}
+
+export interface GovernmentValidationListResult {
+  metrics: GovernmentValidationMetrics;
+  items: GovernmentValidationItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getGovernmentValidationList(options: ValidationQueryOptions = {}) {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      data: null,
+    };
+  }
+
+  const {
+    search = "",
+    filterValidationStatus = "ALL",
+    filterVerificationStatus = "ALL",
+    filterGeometryType = "ALL",
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+  } = options;
+
+  const pageNum = Math.max(1, Number(page) || 1);
+  const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
+
+  try {
+    let allProperties: any[] = [];
+    try {
+      allProperties = await prisma.property.findMany({
+        include: {
+          floor: {
+            include: {
+              building: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    } catch (dbError) {
+      console.warn("Database query failed or unavailable, returning zero state validation metrics:", dbError);
+    }
+
+    const ulpinCounts = new Set<string>();
+    for (const p of allProperties) {
+      if (p.ulpin && p.ulpin.trim() !== "") {
+        ulpinCounts.add(p.ulpin.trim());
+      }
+    }
+
+    let passCount = 0;
+    let warningCount = 0;
+    let failCount = 0;
+
+    const evaluatedList = allProperties.map((p) => {
+      let polygonArray: unknown[] = [];
+      if (typeof p.polygon === "string") {
+        try {
+          polygonArray = JSON.parse(p.polygon) as unknown[];
+        } catch {
+          polygonArray = [];
+        }
+      } else if (Array.isArray(p.polygon)) {
+        polygonArray = p.polygon;
+      }
+
+      const hasGeom = Array.isArray(polygonArray) && polygonArray.length >= 3;
+      const geomType = hasGeom ? "Volumetric 3D" : "No Geometry";
+
+      const evaluation = validatePropertyRecord(p);
+
+      if (evaluation.overallStatus === "PASS") passCount++;
+      else if (evaluation.overallStatus === "WARNING") warningCount++;
+      else if (evaluation.overallStatus === "FAIL") failCount++;
+
+      const item: GovernmentValidationItem = {
+        id: p.id,
+        unitNumber: p.unitNumber || "UNIT",
+        ulpin: p.ulpin || null,
+        buildingId: p.floor.building.id,
+        buildingName: p.floor.building.name || "Cadastral Structure",
+        floorNumber: p.floor.floorNumber,
+        elevation: p.floor.elevation,
+        height: p.floor.height,
+        area: Number(p.area) || 0,
+        spaceType: p.spaceType || "RESIDENTIAL",
+        geometryType: geomType,
+        validationStatus: evaluation.overallStatus,
+        detectedIssue: evaluation.primaryIssue,
+        lastChecked: p.createdAt.toISOString(),
+        verificationStatus: p.floor.building.approvalStatus,
+        hasGeometry: hasGeom,
+        checksCount: evaluation.checks.length,
+      };
+
+      return item;
+    });
+
+    const totalInspected = evaluatedList.length;
+    const qualityPassRate =
+      totalInspected > 0 ? Math.round((passCount / totalInspected) * 100) : 0;
+
+    const metrics: GovernmentValidationMetrics = {
+      totalInspected,
+      passCount,
+      warningCount,
+      failCount,
+      qualityPassRate,
+    };
+
+    // Filter items
+    let filtered = evaluatedList.filter((item) => {
+      if (filterValidationStatus !== "ALL" && item.validationStatus !== filterValidationStatus) {
+        return false;
+      }
+      if (filterVerificationStatus !== "ALL" && item.verificationStatus !== filterVerificationStatus) {
+        return false;
+      }
+      if (filterGeometryType !== "ALL" && item.geometryType !== filterGeometryType) {
+        return false;
+      }
+      if (search && search.trim()) {
+        const q = search.trim().toLowerCase();
+        const matches =
+          item.id.toLowerCase().includes(q) ||
+          (item.ulpin && item.ulpin.toLowerCase().includes(q)) ||
+          item.unitNumber.toLowerCase().includes(q) ||
+          item.buildingName.toLowerCase().includes(q) ||
+          item.spaceType.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      return true;
+    });
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let valA: any = (a as any)[sortBy] || a.lastChecked;
+      let valB: any = (b as any)[sortBy] || b.lastChecked;
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
+
+      if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+      if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    const total = filtered.length;
+    const skip = (pageNum - 1) * limitNum;
+    const paginatedItems = filtered.slice(skip, skip + limitNum);
+    const totalPages = Math.ceil(total / limitNum) || 1;
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      data: {
+        metrics,
+        items: paginatedItems,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+      } as GovernmentValidationListResult,
+    };
+  } catch (error) {
+    console.error("Failed to fetch government validation list:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to retrieve Government validation data.",
+      data: null,
+    };
+  }
+}
+
+export async function getGovernmentValidationRecordDetails(propertyId: string) {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      data: null,
+    };
+  }
+
+  if (!propertyId || typeof propertyId !== "string") {
+    return {
+      success: false as const,
+      status: 400,
+      error: "Invalid property identifier.",
+      data: null,
+    };
+  }
+
+  try {
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      include: {
+        floor: {
+          include: {
+            building: true,
+          },
+        },
+      },
+    });
+
+    if (!property) {
+      return {
+        success: false as const,
+        status: 404,
+        error: "Property record not found.",
+        data: null,
+      };
+    }
+
+    const evaluation = validatePropertyRecord(property);
+
+    let polygonArray: unknown[] = [];
+    if (typeof property.polygon === "string") {
+      try {
+        polygonArray = JSON.parse(property.polygon) as unknown[];
+      } catch {
+        polygonArray = [];
+      }
+    } else if (Array.isArray(property.polygon)) {
+      polygonArray = property.polygon;
+    }
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      data: {
+        property: {
+          id: property.id,
+          unitNumber: property.unitNumber,
+          ulpin: property.ulpin,
+          area: property.area,
+          spaceType: property.spaceType,
+          createdAt: property.createdAt.toISOString(),
+          floorNumber: property.floor.floorNumber,
+          elevation: property.floor.elevation,
+          height: property.floor.height,
+          buildingId: property.floor.building.id,
+          buildingName: property.floor.building.name,
+          latitude: property.floor.building.latitude,
+          longitude: property.floor.building.longitude,
+          approvalStatus: property.floor.building.approvalStatus,
+          polygon: polygonArray,
+        },
+        evaluation,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch property validation details:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to retrieve validation details.",
       data: null,
     };
   }
