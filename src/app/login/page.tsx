@@ -10,9 +10,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { lang, setLang } = useLanguage();
 
-  const [loginRole, setLoginRole] = useState<LoginRole>("VIEWER");
+  const [loginRole, setLoginRole] = useState<LoginRole>("SURVEYOR");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,321 +66,547 @@ export default function LoginPage() {
   }
 
   // UI labels based on language selection
-  const labels = lang === "HI" ? {
-    headerTitle: "3D भूमि बुद्धिमत्ता मंच",
-    welcome: "भू-विस्टा में आपका स्वागत है",
-    subWelcome: "राष्ट्रीय 3D भूमि बुद्धिमत्ता और कैडस्ट्रल रजिस्ट्री तक पहुंचें।",
-    signInAs: "के रूप में साइन इन करें",
-    viewer: "दर्शक (Viewer)",
-    surveyor: "सर्वेक्षक (Surveyor)",
-    viewerNotice: "पंजीकृत सार्वजनिक और एजेंसी उपयोगकर्ताओं के लिए।",
-    surveyorNotice: "अधिकृत सरकारी कैडस्ट्रल सर्वेक्षकों के लिए।",
-    emailLabel: "ईमेल पता",
-    emailPlaceholder: "official@domain.gov.in",
-    passwordLabel: "पासवर्ड",
-    forgotPassword: "पासवर्ड भूल गए?",
-    show: "दिखाएं",
-    hide: "छिपाएं",
-    passwordPlaceholder: "अपना पासवर्ड दर्ज करें",
-    signInBtn: "साइन इन करें",
-    authenticating: "प्रमाणीकरण हो रहा है...",
-    noAccount: "खाता नहीं है?",
-    registerViewer: "दर्शक खाता पंजीकृत करें",
-    govNoticeTitle: "सरकारी सर्वेक्षक एवं अधिकारी क्रेडेंशियलिंग",
-    govNoticeBody: "अधिकृत सर्वेक्षक और सरकारी अधिकारी खाते विभाग के प्रशासकों द्वारा जारी किए जाते हैं।",
-    slogan: "Digital India  |  Transparent Land Records  |  Empowering Citizens"
-  } : {
-    headerTitle: "3D LAND INTELLIGENCE PLATFORM",
-    welcome: "Welcome to BhuVista",
-    subWelcome: "Access the national 3D land intelligence & cadastral registry.",
-    signInAs: "Sign in as",
-    viewer: "Viewer",
-    surveyor: "Surveyor",
-    viewerNotice: "For registered public & agency users.",
-    surveyorNotice: "For authorized government cadastral surveyors.",
-    emailLabel: "Email address",
-    emailPlaceholder: "official@domain.gov.in",
-    passwordLabel: "Password",
-    forgotPassword: "Forgot password?",
-    show: "Show",
-    hide: "Hide",
-    passwordPlaceholder: "Enter your password",
-    signInBtn: "Sign in",
-    authenticating: "Authenticating...",
-    noAccount: "Don't have an account?",
-    registerViewer: "Register viewer account",
-    govNoticeTitle: "Government Surveyor & Official Credentialing",
-    govNoticeBody: "Authorized surveyor and government officer accounts are issued by department administrators.",
-    slogan: "Digital India  |  Transparent Land Records  |  Empowering Citizens"
-  };
+  const labels =
+    lang === "HI"
+      ? {
+          brandTitle: "भू-विस्टा",
+          brandSubtitle: "3D भूमि बुद्धिमत्ता मंच",
+          brandGov: "ग्रामीण विकास मंत्रालय",
+          welcome: "वापसी पर स्वागत है",
+          subWelcome: "भू-विस्टा प्लेटफॉर्म तक पहुंचने के लिए अपने खाते में साइन इन करें",
+          surveyorTab: "सर्वेक्षक लॉगिन",
+          viewerTab: "सार्वजनिक दर्शक",
+          emailPlaceholder: "ईमेल पता",
+          passwordPlaceholder: "पासवर्ड",
+          rememberMe: "मुझे याद रखें",
+          forgotPassword: "पासवर्ड भूल गए?",
+          loginBtn: "लॉगिन",
+          authenticating: "प्रमाणीकरण हो रहा है...",
+          or: "या",
+          registerBtn: loginRole === "SURVEYOR" ? "नया सर्वेक्षक पंजीकरण" : "दर्शक खाता पंजीकृत करें",
+          secureAccess: "अधिकृत उपयोगकर्ताओं के लिए सुरक्षित पहुंच",
+          govIndia: "भारत सरकार",
+          slogan: "Digital India  |  Transparent Land Records  |  Empowering Citizens",
+        }
+      : {
+          brandTitle: "BhuVista",
+          brandSubtitle: "3D LAND INTELLIGENCE PLATFORM",
+          brandGov: "MINISTRY OF RURAL DEVELOPMENT",
+          welcome: "Welcome Back",
+          subWelcome: "Sign in to your account to access the BhuVista platform",
+          surveyorTab: "Surveyor Login",
+          viewerTab: "Public Viewer",
+          emailPlaceholder: "Email Address",
+          passwordPlaceholder: "Password",
+          rememberMe: "Remember me",
+          forgotPassword: "Forgot password?",
+          loginBtn: "Login",
+          authenticating: "Authenticating...",
+          or: "or",
+          registerBtn: loginRole === "SURVEYOR" ? "New Surveyor Registration" : "Register Viewer Account",
+          secureAccess: "Secure Access for Authorized Users",
+          govIndia: "Government of India",
+          slogan: "Digital India  |  Transparent Land Records  |  Empowering Citizens",
+        };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col justify-between overflow-x-hidden bg-gradient-to-b from-[#edf4f8] via-[#e4edf3] to-[#dbe6ee] text-[#162a21]">
+    <div className="relative flex min-h-screen w-full flex-col justify-between overflow-x-hidden bg-[#eef5f1] text-[#122e23] selection:bg-[#1b6a4a] selection:text-white font-sans">
+      {/* RICH LIGHT ATMOSPHERIC LANDSCAPE BACKGROUND (Matching Reference 2) */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* Soft sky gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#e3f2fd]/60 via-[#f1f8f5] to-[#e4f0ea]" />
 
-      {/* BACKGROUND CITY SKYLINE (Subtle monotone neutral silhouettes) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 overflow-hidden">
-        {/* Soft atmospheric gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#c5d8e6]/40 via-transparent to-transparent" />
+        {/* Soft distant clouds and sunlight radial blur */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-radial from-white via-white/40 to-transparent opacity-80 blur-2xl" />
 
-        {/* Monotone Building Silhouettes SVG Vector */}
-        <div className="absolute bottom-0 left-0 right-0 h-56 w-full opacity-35 sm:h-72 md:h-80">
+        {/* SVG City Skyline & Agricultural Cadastral Landscape */}
+        <div className="absolute bottom-0 inset-x-0 h-full w-full max-h-[620px] opacity-85">
           <svg
             className="h-full w-full"
-            viewBox="0 0 1440 320"
+            viewBox="0 0 1440 600"
             preserveAspectRatio="none"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            {/* Far background buildings layer (Light Neutral Slate) */}
+            <defs>
+              {/* Sky to horizon gradient */}
+              <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#e8f4f0" stopOpacity="0" />
+                <stop offset="100%" stopColor="#d2e8de" stopOpacity="0.5" />
+              </linearGradient>
+
+              {/* Mountain gradient */}
+              <linearGradient id="mountainGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#b1cdc0" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#87a898" stopOpacity="0.6" />
+              </linearGradient>
+
+              {/* Distant building silhouette */}
+              <linearGradient id="bldgGradFar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#9cb5aa" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#7a978a" stopOpacity="0.7" />
+              </linearGradient>
+
+              {/* Midground building silhouette */}
+              <linearGradient id="bldgGradMid" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#819e91" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#5d7b6e" stopOpacity="0.8" />
+              </linearGradient>
+
+              {/* Foreground landscape field gradient */}
+              <linearGradient id="fieldGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#c2e2d3" stopOpacity="0.7" />
+                <stop offset="100%" stopColor="#a3cbba" stopOpacity="0.9" />
+              </linearGradient>
+            </defs>
+
+            {/* Distant Mountain Range */}
             <path
-              fill="#94a3b8"
-              opacity="0.35"
-              d="M0,320 L0,210 L30,210 L30,180 L60,180 L60,210 L90,210 L90,250 L120,250 L120,160 L150,160 L150,140 L180,140 L180,160 L200,160 L200,250 L240,250 L240,190 L270,190 L270,130 L310,130 L310,190 L340,190 L340,260 L380,260 L380,110 L410,110 L410,90 L430,90 L430,110 L450,110 L450,260 L490,260 L490,170 L520,170 L520,260 L570,260 L570,150 L600,150 L600,120 L620,120 L620,150 L640,150 L640,260 L680,260 L680,180 L720,180 L720,260 L770,260 L770,140 L800,140 L800,100 L820,100 L820,140 L840,140 L840,260 L890,260 L890,160 L930,160 L930,260 L980,260 L980,130 L1010,130 L1010,80 L1030,80 L1030,130 L1060,130 L1060,260 L1110,260 L1110,190 L1150,190 L1150,260 L1200,260 L1200,150 L1240,150 L1240,260 L1300,260 L1300,170 L1340,170 L1340,210 L1380,210 L1380,260 L1440,260 L1440,320 Z"
+              d="M0,380 Q180,320 360,350 T720,330 T1080,340 T1440,370 L1440,600 L0,600 Z"
+              fill="url(#mountainGrad)"
             />
-            {/* Midground buildings layer (Soft Neutral Blue-Gray) */}
+
+            {/* Left Skyline Group (Towers, Skyscrapers, Spire) */}
+            <g fill="url(#bldgGradFar)">
+              {/* Left far towers */}
+              <rect x="40" y="220" width="38" height="180" rx="2" />
+              <rect x="85" y="260" width="30" height="140" rx="1" />
+              <rect x="120" y="180" width="45" height="220" rx="3" />
+              <polygon points="142.5,140 135,180 150,180" />
+              <rect x="172" y="240" width="35" height="160" rx="2" />
+              <rect x="215" y="210" width="50" height="190" rx="3" />
+              <rect x="272" y="280" width="40" height="120" rx="2" />
+              <rect x="320" y="250" width="32" height="150" rx="2" />
+            </g>
+
+            {/* Right Skyline Group (Modern Commercial District) */}
+            <g fill="url(#bldgGradFar)">
+              <rect x="1080" y="260" width="35" height="140" rx="2" />
+              <rect x="1122" y="210" width="42" height="190" rx="3" />
+              <rect x="1170" y="290" width="38" height="110" rx="2" />
+              <rect x="1215" y="170" width="48" height="230" rx="4" />
+              <polygon points="1239,120 1230,170 1248,170" />
+              <rect x="1270" y="230" width="40" height="170" rx="2" />
+              <rect x="1318" y="250" width="55" height="150" rx="3" />
+              <rect x="1380" y="220" width="35" height="180" rx="2" />
+            </g>
+
+            {/* Midground Building Details (Left & Right framing) */}
+            <g fill="url(#bldgGradMid)">
+              <rect x="60" y="280" width="42" height="120" rx="2" />
+              <rect x="140" y="230" width="36" height="170" rx="2" />
+              <rect x="240" y="260" width="45" height="140" rx="2" />
+
+              <rect x="1140" y="250" width="38" height="150" rx="2" />
+              <rect x="1235" y="220" width="42" height="180" rx="2" />
+              <rect x="1330" y="280" width="40" height="120" rx="2" />
+            </g>
+
+            {/* Foreground Agricultural Cadastral Fields & Land Parcels */}
             <path
-              fill="#64748b"
-              opacity="0.3"
-              d="M0,320 L0,240 L40,240 L40,190 L70,190 L70,240 L110,240 L110,170 L140,170 L140,240 L190,240 L190,150 L220,150 L220,130 L235,130 L235,150 L250,150 L250,240 L300,240 L300,200 L330,200 L330,240 L370,240 L370,160 L400,160 L400,240 L460,240 L460,180 L490,180 L490,140 L510,140 L510,180 L530,180 L530,240 L590,240 L590,190 L630,190 L630,240 L690,240 L690,160 L730,160 L730,240 L780,240 L780,180 L810,180 L810,240 L860,240 L860,150 L890,150 L890,120 L910,120 L910,150 L930,150 L930,240 L990,240 L990,190 L1030,190 L1030,240 L1090,240 L1090,170 L1130,170 L1130,240 L1180,240 L1180,180 L1220,180 L1220,240 L1280,240 L1280,200 L1320,200 L1320,240 L1380,240 L1380,210 L1440,210 L1440,320 Z"
+              d="M0,380 L1440,380 L1440,600 L0,600 Z"
+              fill="url(#fieldGrad)"
             />
-            {/* Foreground subtle building outline layer */}
-            <path
-              fill="#475569"
-              opacity="0.2"
-              d="M0,320 L0,270 L50,270 L50,220 L90,220 L90,270 L150,270 L150,210 L180,210 L180,270 L240,270 L240,230 L280,230 L280,270 L350,270 L350,190 L390,190 L390,270 L470,270 L470,220 L520,220 L520,270 L600,270 L600,200 L650,200 L650,270 L730,270 L730,230 L780,230 L780,270 L850,270 L850,190 L900,190 L900,270 L970,270 L970,220 L1020,220 L1020,270 L1100,270 L1100,200 L1150,200 L1150,270 L1230,270 L1230,240 L1290,240 L1290,270 L1360,270 L1360,230 L1440,230 L1440,320 Z"
-            />
+
+            {/* Perspective Cadastral Parcel Lines (Land Intelligence visual motif) */}
+            <g stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.45" strokeDasharray="6,4">
+              <line x1="100" y1="380" x2="-100" y2="600" />
+              <line x1="300" y1="380" x2="100" y2="600" />
+              <line x1="500" y1="380" x2="400" y2="600" />
+              <line x1="720" y1="380" x2="720" y2="600" />
+              <line x1="940" y1="380" x2="1040" y2="600" />
+              <line x1="1140" y1="380" x2="1340" y2="600" />
+              <line x1="1340" y1="380" x2="1580" y2="600" />
+
+              {/* Horizontal terrace / parcel boundary lines */}
+              <line x1="0" y1="420" x2="1440" y2="420" />
+              <line x1="0" y1="470" x2="1440" y2="470" />
+              <line x1="0" y1="530" x2="1440" y2="530" />
+            </g>
+
+            {/* Trees & Greenery along horizon */}
+            <g fill="#5d8574" opacity="0.7">
+              <circle cx="380" cy="380" r="14" />
+              <circle cx="400" cy="382" r="11" />
+              <circle cx="420" cy="379" r="16" />
+              <circle cx="450" cy="381" r="12" />
+              <circle cx="480" cy="380" r="15" />
+              <circle cx="510" cy="383" r="10" />
+
+              <circle cx="950" cy="380" r="15" />
+              <circle cx="980" cy="382" r="12" />
+              <circle cx="1010" cy="379" r="16" />
+              <circle cx="1040" cy="381" r="11" />
+            </g>
           </svg>
         </div>
       </div>
 
-      {/* TOP HEADER SECTION */}
-      <header className="relative z-20 flex w-full items-center justify-between px-4 py-3 sm:px-8 sm:py-4">
-        {/* TOP LEFT: Ministry of Rural Development Logo */}
+      {/* TOP HEADER SECTION — Matches Reference 2 Exact Layout */}
+      <header className="relative z-20 flex w-full items-start justify-between px-6 pt-5 pb-2 sm:px-10 sm:pt-6">
+        {/* TOP LEFT: Ministry of Rural Development / Govt of India Logo */}
         <div className="flex items-center">
           <img
             src="/mord-logo.png"
             alt="Ministry of Rural Development - Government of India"
-            className="h-10 w-auto object-contain sm:h-12 md:h-14 max-w-[160px] sm:max-w-[220px]"
+            className="h-10 sm:h-12 md:h-14 w-auto object-contain"
           />
         </div>
 
-        {/* TOP CENTER: Main Heading */}
-        <div className="hidden text-center md:block px-4">
-          <h1 className="text-base font-extrabold tracking-widest text-[#153a2a] uppercase lg:text-lg xl:text-xl drop-shadow-sm">
-            {labels.headerTitle}
+        {/* TOP CENTER: BhuVista Brand Identity & Wordmark */}
+        <div className="flex flex-col items-center text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-[42px] font-extrabold tracking-tight text-[#0d472a] font-serif leading-none">
+            {labels.brandTitle}
           </h1>
+          <p className="mt-1 text-[11px] sm:text-xs font-bold tracking-[0.2em] text-[#0d472a] uppercase">
+            {labels.brandSubtitle}
+          </p>
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[9px] sm:text-[10px] font-semibold text-[#668878] uppercase tracking-widest">
+            <span className="h-[1px] w-6 sm:w-10 bg-[#bcd4c8]" />
+            <span>{labels.brandGov}</span>
+            <span className="h-[1px] w-6 sm:w-10 bg-[#bcd4c8]" />
+          </div>
         </div>
 
-        {/* TOP RIGHT: BhuVista Logo */}
+        {/* TOP RIGHT: The Provided NEW BhuVista Logo Asset */}
         <div className="flex items-center justify-end">
           <img
-            src="/bhuvista-logo.png"
-            alt="BhuVista 3D Land Intelligence Platform"
-            className="h-10 w-auto object-contain sm:h-12 md:h-14 max-w-[140px] sm:max-w-[200px]"
+            src="/bhuvista-logo-new.png"
+            alt="BhuVista Logo"
+            className="h-12 sm:h-14 md:h-16 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
           />
         </div>
       </header>
 
-      {/* MOBILE CENTER TITLE (Only visible on small screens) */}
-      <div className="relative z-20 px-4 text-center md:hidden mb-1">
-        <h1 className="text-xs font-extrabold tracking-wider text-[#153a2a] uppercase">
-          {labels.headerTitle}
-        </h1>
-      </div>
-
-      {/* MAIN CONTENT AREA — CENTERED LOGIN BOX */}
-      <main className="relative z-20 flex flex-1 items-center justify-center px-4 py-3 sm:px-6">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-xl backdrop-blur-md sm:p-7 sm:rounded-3xl">
-
-          {/* CARD TOP ROW: Language Selector INSIDE the login box */}
-          <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <span className="inline-block rounded-md bg-[#e8f5e9] px-2.5 py-1 text-[10px] font-bold tracking-wider text-[#1b4332] uppercase">
-                {lang === "HI" ? "सरकारी पोर्टल" : "GOVERNMENT PORTAL"}
-              </span>
-            </div>
-
-            {/* Language dropdown switcher INSIDE the login box */}
-            <div className="relative flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-[#1b4332]">
-              <span className="text-sm">🌐</span>
+      {/* MAIN CONTENT AREA — COMPACT CENTERED LOGIN CARD */}
+      <main className="relative z-20 flex flex-1 items-center justify-center px-4 py-4 sm:py-6">
+        <div className="w-full max-w-[400px] sm:max-w-[420px] rounded-2xl border border-white/80 bg-white/95 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-md transition-all">
+          {/* CARD TOP ROW: Language Selector Dropdown (Top Right inside card) */}
+          <div className="mb-2 flex items-center justify-end">
+            <div className="relative inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
+              <svg
+                className="h-3.5 w-3.5 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                />
+              </svg>
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value as "EN" | "HI")}
-                aria-label="Select Interface Language"
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer pr-1 text-xs"
+                aria-label="Select Language"
+                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs pr-1"
               >
                 <option value="EN">English</option>
                 <option value="HI">हिंदी (Hindi)</option>
               </select>
+              <svg
+                className="h-3 w-3 text-slate-400 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
 
-          {/* WELCOME HEADING */}
-          <div className="mb-4">
-            <h2 className="text-xl font-bold tracking-tight text-[#162a21] sm:text-2xl">
+          {/* CARD HEADING */}
+          <div className="mb-5 text-left">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 font-sans">
               {labels.welcome}
             </h2>
-            <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+            <p className="mt-1 text-xs text-slate-500 leading-normal">
               {labels.subWelcome}
             </p>
           </div>
 
-          {/* ROLE SELECTOR ("Viewer" vs "Surveyor") */}
+          {/* ROLE SELECTOR (Segmented Control matching Reference 2) */}
           <div className="mb-4">
-            <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
-              {labels.signInAs}
-            </label>
-
-            <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 border border-slate-200/80">
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginRole("VIEWER");
-                  setError("");
-                }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                  loginRole === "VIEWER"
-                    ? "bg-white text-[#1b4332] shadow-sm border border-slate-200"
-                    : "text-slate-600 hover:text-[#162a21]"
-                }`}
-              >
-                {labels.viewer}
-              </button>
-
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/60">
               <button
                 type="button"
                 onClick={() => {
                   setLoginRole("SURVEYOR");
                   setError("");
                 }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
                   loginRole === "SURVEYOR"
-                    ? "bg-white text-[#1b4332] shadow-sm border border-slate-200"
-                    : "text-slate-600 hover:text-[#162a21]"
+                    ? "bg-[#1b6a4a] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {labels.surveyor}
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <span>{labels.surveyorTab}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginRole("VIEWER");
+                  setError("");
+                }}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
+                  loginRole === "VIEWER"
+                    ? "bg-[#1b6a4a] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4"
+                  />
+                </svg>
+                <span>{labels.viewerTab}</span>
               </button>
             </div>
-
-            <p className="mt-1.5 text-[10px] text-slate-500">
-              {loginRole === "VIEWER" ? labels.viewerNotice : labels.surveyorNotice}
-            </p>
           </div>
 
-          {/* FORM */}
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {/* EMAIL */}
+          {/* LOGIN FORM */}
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            {/* EMAIL INPUT */}
             <div>
-              <label
-                htmlFor="email"
-                className="mb-1 block text-[11px] font-semibold text-slate-700 uppercase tracking-wider"
-              >
-                {labels.emailLabel}
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder={labels.emailPlaceholder}
-                required
-                autoComplete="email"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm text-[#162a21] outline-none transition placeholder:text-slate-400 focus:border-[#2d6a4f] focus:ring-2 focus:ring-[#2d6a4f]/20"
-              />
+              <div className="relative flex items-center">
+                <div className="absolute left-3 text-slate-400 pointer-events-none">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={labels.emailPlaceholder}
+                  required
+                  autoComplete="email"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1b6a4a] focus:bg-white focus:ring-2 focus:ring-[#1b6a4a]/15"
+                />
+              </div>
             </div>
 
-            {/* PASSWORD */}
+            {/* PASSWORD INPUT */}
             <div>
-              <div className="mb-1 flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider"
-                >
-                  {labels.passwordLabel}
-                </label>
-
-                <button
-                  type="button"
-                  className="text-[11px] font-semibold text-[#1b4332] hover:underline"
-                >
-                  {labels.forgotPassword}
-                </button>
-              </div>
-
-              <div className="relative">
+              <div className="relative flex items-center">
+                <div className="absolute left-3 text-slate-400 pointer-events-none">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
                 <input
-                  id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder={labels.passwordPlaceholder}
                   required
                   autoComplete="current-password"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 pr-14 text-xs sm:text-sm text-[#162a21] outline-none transition placeholder:text-slate-400 focus:border-[#2d6a4f] focus:ring-2 focus:ring-[#2d6a4f]/20"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-9 pr-10 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1b6a4a] focus:bg-white focus:ring-2 focus:ring-[#1b6a4a]/15"
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 hover:text-[#162a21]"
+                  aria-label="Toggle password visibility"
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                 >
-                  {showPassword ? labels.hide : labels.show}
+                  {showPassword ? (
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.858A9.954 9.954 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m-0.469 0.469L3 3l18 18"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* ERROR */}
+            {/* REMEMBER ME & FORGOT PASSWORD */}
+            <div className="flex items-center justify-between text-xs px-0.5">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-600 select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-slate-300 text-[#1b6a4a] focus:ring-[#1b6a4a]/20 cursor-pointer"
+                />
+                <span>{labels.rememberMe}</span>
+              </label>
+
+              <button
+                type="button"
+                className="font-medium text-[#1b6a4a] hover:underline cursor-pointer"
+              >
+                {labels.forgotPassword}
+              </button>
+            </div>
+
+            {/* ERROR DISPLAY */}
             {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+              <div className="rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 font-medium">
                 {error}
               </div>
             )}
 
-            {/* LOGIN BUTTON */}
+            {/* SUBMIT BUTTON */}
             <button
               type="submit"
               disabled={loading}
-              className="mt-1 w-full rounded-xl bg-[#1b4332] px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-md transition hover:bg-[#2d6a4f] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-[#1b6a4a] py-2.5 px-4 text-xs font-bold text-white shadow-md shadow-[#1b6a4a]/20 transition hover:bg-[#15563b] focus:outline-none focus:ring-2 focus:ring-[#1b6a4a]/40 disabled:opacity-60 cursor-pointer"
             >
-              {loading ? labels.authenticating : labels.signInBtn}
+              <span>{loading ? labels.authenticating : labels.loginBtn}</span>
+              {!loading && (
+                <svg
+                  className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                  />
+                </svg>
+              )}
             </button>
           </form>
 
-          {/* REGISTER LINK */}
-          <div className="mt-4 text-center text-xs text-slate-600">
-            {labels.noAccount}{" "}
+          {/* DIVIDER */}
+          <div className="my-3.5 flex items-center justify-center gap-3">
+            <span className="h-[1px] flex-1 bg-slate-200" />
+            <span className="text-[11px] font-medium text-slate-400 lowercase">
+              {labels.or}
+            </span>
+            <span className="h-[1px] flex-1 bg-slate-200" />
+          </div>
+
+          {/* REGISTRATION ACTION */}
+          <div>
             <button
               type="button"
               onClick={() => router.push("/signup")}
-              className="font-bold text-[#1b4332] hover:underline cursor-pointer"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-slate-50/60 py-2 px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
             >
-              {labels.registerViewer}
+              <svg
+                className="h-3.5 w-3.5 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+              <span>{labels.registerBtn}</span>
             </button>
           </div>
 
-          {/* OFFICIAL NOTICE */}
-          <div className="mt-4 border-t border-slate-100 pt-3">
-            <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-100">
-              <p className="text-[11px] font-bold text-[#162a21]">
-                {labels.govNoticeTitle}
-              </p>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
-                {labels.govNoticeBody}
-              </p>
+          {/* SECURITY & OFFICIAL ACCESS BADGE */}
+          <div className="mt-5 pt-3 border-t border-slate-100/80 flex items-center justify-center gap-2 text-center">
+            <svg
+              className="h-4 w-4 text-[#1b6a4a] shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+            <div className="text-[10px] leading-tight text-slate-500 font-medium">
+              <span>{labels.secureAccess}</span>
+              <br />
+              <span className="text-slate-400">{labels.govIndia}</span>
             </div>
           </div>
-
         </div>
       </main>
 
-      {/* BOTTOM CENTER PLATFORM VALUES SLOGAN */}
-      <footer className="relative z-20 w-full py-3 px-4 text-center">
-        <p className="text-xs font-semibold tracking-wider text-slate-600 uppercase sm:text-sm drop-shadow-sm">
+      {/* FOOTER SECTION — Matches Reference 2 */}
+      <footer className="relative z-20 w-full py-4 px-4 text-center">
+        <p className="text-xs font-medium tracking-wide text-slate-600 sm:text-sm">
           {labels.slogan}
         </p>
       </footer>
-
     </div>
   );
 }
