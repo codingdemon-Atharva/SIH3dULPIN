@@ -457,29 +457,67 @@ export default function GovernmentDashboardOverviewPage() {
             </div>
           </div>
 
-          {/* Section C: Recent Activity (Empty State) */}
+          {/* Section C: Recent Activity */}
           <div className="rounded-2xl border border-[#e2dad0] bg-white p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-extrabold text-[#162a21] border-b border-[#e2dad0] pb-3 flex items-center gap-2">
-              <svg className="w-4 h-4 text-[#2d6a4f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Recent Activity</span>
-            </h2>
-
-            {/* Clean empty state */}
-            <div className="rounded-xl border border-dashed border-[#e2dad0] bg-[#f8f5ee] p-6 text-center space-y-2">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#e2dad0]/50 text-[#6b887a]">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div className="flex items-center justify-between border-b border-[#e2dad0] pb-3">
+              <h2 className="text-sm font-extrabold text-[#162a21] flex items-center gap-2">
+                <svg className="w-4 h-4 text-[#2d6a4f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-              </div>
-              <p className="text-xs font-bold text-[#162a21]">
-                No recent activity available.
-              </p>
-              <p className="text-[11px] text-[#6b887a]">
-                Government system audit history and automated activity logs will be recorded here.
-              </p>
+                <span>Recent Activity</span>
+              </h2>
+
+              <Link
+                href="/government/activity-log"
+                className="text-[11px] font-bold text-[#2d6a4f] hover:underline flex items-center gap-1"
+              >
+                <span>Full Audit Log</span>
+                <span>→</span>
+              </Link>
             </div>
+
+            {loading ? (
+              <div className="p-4 text-center text-xs text-[#6b887a] animate-pulse">
+                Loading recent activity...
+              </div>
+            ) : !metrics || !metrics.recentActivity || metrics.recentActivity.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#e2dad0] bg-[#f8f5ee] p-6 text-center space-y-2">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#e2dad0]/50 text-[#6b887a]">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p className="text-xs font-bold text-[#162a21]">
+                  No recent activity recorded.
+                </p>
+                <p className="text-[11px] text-[#6b887a]">
+                  Government system audit history and automated activity logs will be recorded here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {metrics.recentActivity.map((act) => (
+                  <div
+                    key={act.id}
+                    className="p-3 rounded-xl border border-[#e2dad0] bg-[#fdfbf7] flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex flex-col truncate">
+                      <span className="font-extrabold text-[#162a21] truncate">{act.action}</span>
+                      <span className="text-[11px] text-[#6b887a] truncate">{act.entity}</span>
+                    </div>
+                    <div className="flex flex-col items-end text-right shrink-0">
+                      <span className="font-semibold text-[#2d6a4f] text-[10px]">{act.user}</span>
+                      <span className="text-[10px] font-mono text-[#6b887a]">
+                        {new Date(act.timestamp).toLocaleDateString("en-IN", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Section G: Quick Actions */}

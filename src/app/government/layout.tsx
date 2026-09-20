@@ -116,6 +116,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
     {
       title: "SYSTEM",
       items: [
+        { id: "activity-log", label: "Activity & Audit History", href: "/government/activity-log" },
         { id: "notifications", label: "Notifications", href: "/government/notifications" },
         { id: "downloads", label: "Downloads", href: "/government/downloads" },
         { id: "settings", label: "Settings", href: "/government/settings" },
