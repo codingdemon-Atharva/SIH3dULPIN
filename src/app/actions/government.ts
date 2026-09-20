@@ -159,6 +159,318 @@ export async function getGovernmentDashboardOverview() {
 }
 
 // ==========================================
+// ULPIN REGISTRY MANAGEMENT
+// ==========================================
+
+export interface UlpinRegistryQueryOptions {
+  search?: string;
+  filterUlpinStatus?: string;
+  filterStatus?: string;
+  filterSpaceType?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface GovernmentUlpinOverviewMetrics {
+  totalRecords: number;
+  assignedCount: number;
+  unassignedCount: number;
+  assignedPercentage: number;
+  verifiedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+}
+
+export interface GovernmentUlpinItem {
+  id: string;
+  ulpin: string | null;
+  unitNumber: string;
+  area: number;
+  spaceType: string;
+  createdAt: string;
+  floorId: string;
+  floorNumber: number;
+  elevation: number;
+  height: number;
+  buildingId: string;
+  buildingName: string;
+  latitude: number;
+  longitude: number;
+  approvalStatus: string;
+  verifiedAt: string | null;
+  hasGeometry: boolean;
+}
+
+export interface GovernmentUlpinRegistryResult {
+  metrics: GovernmentUlpinOverviewMetrics;
+  items: GovernmentUlpinItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getGovernmentUlpinRegistry(options: UlpinRegistryQueryOptions = {}) {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      data: null,
+    };
+  }
+
+  const {
+    search = "",
+    filterUlpinStatus = "ALL",
+    filterStatus = "ALL",
+    filterSpaceType = "ALL",
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+  } = options;
+
+  const pageNum = Math.max(1, Number(page) || 1);
+  const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
+  const skip = (pageNum - 1) * limitNum;
+
+  try {
+    let metrics: GovernmentUlpinOverviewMetrics = {
+      totalRecords: 0,
+      assignedCount: 0,
+      unassignedCount: 0,
+      assignedPercentage: 0,
+      verifiedCount: 0,
+      pendingCount: 0,
+      rejectedCount: 0,
+    };
+
+    type PropertyQueryResult = {
+      id: string;
+      ulpin: string | null;
+      unitNumber: string;
+      area: number;
+      spaceType: string;
+      polygon: unknown;
+      createdAt: Date;
+      floor: {
+        id: string;
+        floorNumber: number;
+        elevation: number;
+        height: number;
+        building: {
+          id: string;
+          name: string;
+          latitude: number;
+          longitude: number;
+          approvalStatus: string;
+          verifiedAt: Date | null;
+        };
+      };
+    };
+
+    let total = 0;
+    let properties: PropertyQueryResult[] = [];
+
+    try {
+      // Calculate global overview metrics
+      const [
+        totalRecords,
+        assignedCount,
+        verifiedCount,
+        pendingCount,
+        rejectedCount,
+      ] = await Promise.all([
+        prisma.property.count(),
+        prisma.property.count({
+          where: {
+            ulpin: { not: null },
+            NOT: { ulpin: "" },
+          },
+        }),
+        prisma.property.count({
+          where: {
+            floor: {
+              building: { approvalStatus: "APPROVED" },
+            },
+          },
+        }),
+        prisma.property.count({
+          where: {
+            floor: {
+              building: { approvalStatus: "PENDING_REVIEW" },
+            },
+          },
+        }),
+        prisma.property.count({
+          where: {
+            floor: {
+              building: { approvalStatus: "REJECTED" },
+            },
+          },
+        }),
+      ]);
+
+      const unassignedCount = Math.max(0, totalRecords - assignedCount);
+      const assignedPercentage =
+        totalRecords > 0 ? Math.round((assignedCount / totalRecords) * 100) : 0;
+
+      metrics = {
+        totalRecords,
+        assignedCount,
+        unassignedCount,
+        assignedPercentage,
+        verifiedCount,
+        pendingCount,
+        rejectedCount,
+      };
+
+      // Build AND conditions for filtering
+      const andConditions: Record<string, unknown>[] = [];
+
+      if (filterUlpinStatus === "ASSIGNED") {
+        andConditions.push({
+          ulpin: { not: null, NOT: { equals: "" } },
+        });
+      } else if (filterUlpinStatus === "UNASSIGNED") {
+        andConditions.push({
+          OR: [{ ulpin: null }, { ulpin: "" }],
+        });
+      }
+
+      if (filterStatus && filterStatus !== "ALL") {
+        andConditions.push({
+          floor: {
+            building: {
+              approvalStatus: filterStatus,
+            },
+          },
+        });
+      }
+
+      if (filterSpaceType && filterSpaceType !== "ALL") {
+        andConditions.push({
+          spaceType: { equals: filterSpaceType, mode: "insensitive" },
+        });
+      }
+
+      if (search && search.trim()) {
+        const query = search.trim();
+        andConditions.push({
+          OR: [
+            { id: { contains: query, mode: "insensitive" } },
+            { ulpin: { contains: query, mode: "insensitive" } },
+            { unitNumber: { contains: query, mode: "insensitive" } },
+            { spaceType: { contains: query, mode: "insensitive" } },
+            { floor: { building: { name: { contains: query, mode: "insensitive" } } } },
+          ],
+        });
+      }
+
+      const where = andConditions.length > 0 ? { AND: andConditions } : {};
+
+      let validSortBy = "createdAt";
+      if (["createdAt", "ulpin", "area", "unitNumber"].includes(sortBy)) {
+        validSortBy = sortBy;
+      }
+
+      const orderBy = { [validSortBy]: sortOrder === "asc" ? "asc" : "desc" };
+
+      const [countRes, propertiesRes] = await Promise.all([
+        prisma.property.count({ where }),
+        prisma.property.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy,
+          include: {
+            floor: {
+              include: {
+                building: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      total = countRes;
+      properties = propertiesRes;
+    } catch (dbError) {
+      console.warn(
+        "Database query failed or unavailable, returning empty ULPIN registry list:",
+        dbError
+      );
+    }
+
+    const items: GovernmentUlpinItem[] = properties.map((p) => {
+      let polygonArray: unknown[] = [];
+      if (typeof p.polygon === "string") {
+        try {
+          polygonArray = JSON.parse(p.polygon) as unknown[];
+        } catch {
+          polygonArray = [];
+        }
+      } else if (Array.isArray(p.polygon)) {
+        polygonArray = p.polygon;
+      }
+
+      const hasGeometry = Array.isArray(polygonArray) && polygonArray.length >= 3;
+
+      return {
+        id: p.id,
+        ulpin: p.ulpin || null,
+        unitNumber: p.unitNumber || "UNIT",
+        area: Number(p.area) || 0,
+        spaceType: p.spaceType || "RESIDENTIAL",
+        createdAt: p.createdAt.toISOString(),
+        floorId: p.floor.id,
+        floorNumber: p.floor.floorNumber,
+        elevation: p.floor.elevation,
+        height: p.floor.height,
+        buildingId: p.floor.building.id,
+        buildingName: p.floor.building.name || "Cadastral Structure",
+        latitude: p.floor.building.latitude,
+        longitude: p.floor.building.longitude,
+        approvalStatus: p.floor.building.approvalStatus,
+        verifiedAt: p.floor.building.verifiedAt
+          ? p.floor.building.verifiedAt.toISOString()
+          : null,
+        hasGeometry,
+      };
+    });
+
+    const totalPages = Math.ceil(total / limitNum) || 1;
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      data: {
+        metrics,
+        items,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+      } as GovernmentUlpinRegistryResult,
+    };
+  } catch (error) {
+    console.error("Failed to fetch government ULPIN registry:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to retrieve Government ULPIN registry.",
+      data: null,
+    };
+  }
+}
+
+// ==========================================
 // LAND PARCELS MANAGEMENT
 // ==========================================
 
@@ -229,12 +541,34 @@ export async function getGovernmentLandParcels(options: LandParcelsQueryOptions 
   const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
   const skip = (pageNum - 1) * limitNum;
 
+  type BuildingWithFloors = {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    approvalStatus: string;
+    surveyorId: string | null;
+    verifiedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    floors?: Array<{
+      id: string;
+      floorNumber: number;
+      elevation: number;
+      height: number;
+      units?: Array<{
+        id: string;
+        area: number;
+      }>;
+    }>;
+  };
+
   try {
     let total = 0;
-    let buildings: any[] = [];
+    let buildings: BuildingWithFloors[] = [];
 
     try {
-      const where: any = {};
+      const where: Record<string, unknown> = {};
 
       if (filterStatus && filterStatus !== "ALL") {
         where.approvalStatus = filterStatus;
@@ -282,7 +616,7 @@ export async function getGovernmentLandParcels(options: LandParcelsQueryOptions 
       let totalAreaSqM = 0;
       let firstUnitId: string | null = null;
 
-      const floorsSummary = (b.floors || []).map((f: any) => {
+      const floorsSummary = (b.floors || []).map((f) => {
         const uCount = f.units ? f.units.length : 0;
         totalUnits += uCount;
 
@@ -420,12 +754,36 @@ export async function getGovernmentPropertyRegistry(options: PropertyRegistryQue
   const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
   const skip = (pageNum - 1) * limitNum;
 
+  type PropertyWithFloorAndBuilding = {
+    id: string;
+    ulpin: string | null;
+    unitNumber: string;
+    area: number;
+    spaceType: string;
+    polygon: unknown;
+    createdAt: Date;
+    floor: {
+      id: string;
+      floorNumber: number;
+      elevation: number;
+      height: number;
+      building: {
+        id: string;
+        name: string;
+        latitude: number;
+        longitude: number;
+        approvalStatus: string;
+        verifiedAt: Date | null;
+      };
+    };
+  };
+
   try {
     let total = 0;
-    let properties: any[] = [];
+    let properties: PropertyWithFloorAndBuilding[] = [];
 
     try {
-      const where: any = {};
+      const where: Record<string, unknown> = {};
 
       if (filterStatus && filterStatus !== "ALL") {
         where.floor = {
