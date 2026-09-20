@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -103,6 +102,17 @@ const EXTRUSION_LAYER =
 
 const OUTLINE_LAYER =
   "ulpin-cadastral-outlines";
+
+// Satellite imagery is rendered as a raster basemap while the existing
+// OpenFreeMap vector style stays underneath/above it for map labels.
+const SATELLITE_SOURCE_ID =
+  "ulpin-satellite-source";
+
+const SATELLITE_LAYER_ID =
+  "ulpin-satellite-layer";
+
+const MAPTILER_KEY =
+  process.env.NEXT_PUBLIC_MAPTILER_KEY;
 
 /* ============================================================
    HELPERS
@@ -542,6 +552,9 @@ export default function RealWorldMapViewer({
 
   const [rotating, setRotating] =
     useState(false);
+
+  const [basemapMode, setBasemapMode] =
+    useState<"satellite" | "street">("satellite");
 
   const [searchQuery, setSearchQuery] =
     useState("");
@@ -1189,6 +1202,61 @@ export default function RealWorldMapViewer({
     map.on(
       "load",
       () => {
+        // Add real satellite imagery as a raster source.
+        // MapTiler is used when NEXT_PUBLIC_MAPTILER_KEY exists; otherwise
+        // the public Esri World Imagery tile endpoint is used as an MVP fallback.
+        if (!map.getSource(SATELLITE_SOURCE_ID)) {
+          const satelliteSource = MAPTILER_KEY
+            ? {
+                type: "raster" as const,
+                url: `https://api.maptiler.com/tiles/satellite-v4/tiles.json?key=${MAPTILER_KEY}`,
+              }
+            : {
+                type: "raster" as const,
+                tiles: [
+                  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                ],
+                tileSize: 256,
+                attribution:
+                  "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+              };
+
+          map.addSource(
+            SATELLITE_SOURCE_ID,
+            satelliteSource
+          );
+
+          // Put imagery above the style background but below the existing
+          // OpenFreeMap vector layers, so labels remain readable.
+          const firstDrawableLayer =
+            map
+              .getStyle()
+              .layers?.find(
+                (layer) => layer.type !== "background"
+              )?.id;
+
+          map.addLayer(
+            {
+              id: SATELLITE_LAYER_ID,
+              type: "raster",
+              source: SATELLITE_SOURCE_ID,
+              minzoom: 0,
+              maxzoom: 22,
+              layout: {
+                visibility:
+                  basemapMode === "satellite"
+                    ? "visible"
+                    : "none",
+              },
+              paint: {
+                "raster-opacity": 1,
+                "raster-fade-duration": 0,
+              },
+            },
+            firstDrawableLayer
+          );
+        }
+
         setMapReady(true);
 
         window.setTimeout(
@@ -1226,6 +1294,34 @@ export default function RealWorldMapViewer({
       ?.georeference
       ?.longitude,
     multiBuildingMode,
+  ]);
+
+  /**
+   * ----------------------------------------------------------
+   * BASEMAP VISIBILITY
+   * ----------------------------------------------------------
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (
+      !map ||
+      !mapReady ||
+      !map.getLayer(SATELLITE_LAYER_ID)
+    ) {
+      return;
+    }
+
+    map.setLayoutProperty(
+      SATELLITE_LAYER_ID,
+      "visibility",
+      basemapMode === "satellite"
+        ? "visible"
+        : "none"
+    );
+  }, [
+    basemapMode,
+    mapReady,
   ]);
 
   /**
@@ -2376,6 +2472,31 @@ export default function RealWorldMapViewer({
       <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2.5">
         <button
           type="button"
+          onClick={() =>
+            setBasemapMode((mode) =>
+              mode === "satellite"
+                ? "street"
+                : "satellite"
+            )
+          }
+          title={
+            basemapMode === "satellite"
+              ? "Switch to Street Map"
+              : "Switch to Satellite Imagery"
+          }
+          className={`flex h-11 w-11 items-center justify-center rounded-full border text-[10px] font-extrabold shadow-md transition cursor-pointer ${
+            basemapMode === "satellite"
+              ? "border-[#2d6a4f] bg-[#2d6a4f] text-white"
+              : "border-[#e2dad0] bg-[#fdfbf7] text-[#2d6a4f] hover:bg-[#f3efe6]"
+          }`}
+        >
+          {basemapMode === "satellite"
+            ? "SAT"
+            : "MAP"}
+        </button>
+
+        <button
+          type="button"
           onClick={fitAllBuildings}
           title="Home / Center View"
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-[#fdfbf7] text-base font-bold text-[#2d6a4f] shadow-md hover:bg-[#f3efe6] transition cursor-pointer"
@@ -2449,8 +2570,8 @@ export default function RealWorldMapViewer({
           <div className="absolute inset-0 bg-[#e5e0d8] opacity-80" />
           <div className="absolute inset-2 rounded-xl border border-[#2d6a4f]/20 bg-[#fdfbf7]/60 flex items-center justify-center">
             <div className="flex flex-col items-center justify-center text-center p-1">
-              <span className="text-[10px] font-bold text-[#2d6a4f]">MINIMAP</span>
-              <span className="text-[9px] text-[#6b887a]">Overview Map</span>
+              <span className="text-[10px] font-bold text-[#2d6a4f]">OVERVIEW</span>
+              <span className="text-[9px] text-[#6b887a]">{basemapMode === "satellite" ? "Satellite View" : "Street View"}</span>
             </div>
           </div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border border-[#2d6a4f] rounded-full flex items-center justify-center">
