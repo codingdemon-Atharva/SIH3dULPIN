@@ -92,7 +92,7 @@ export function AppHeader({
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center text-center pointer-events-auto">
         <div className="flex items-center justify-center">
           <img
-            src="/bhuvista-logo.png"
+            src="/bhuvista-logo-official-new.png"
             alt="BhuVista"
             className="h-14 w-auto object-contain max-h-[64px]"
           />
