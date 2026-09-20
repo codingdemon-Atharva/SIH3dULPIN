@@ -5,8 +5,8 @@
 ▲ Next.js 16.3.4 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 565ms
+✓ Ready in 545ms
 ✓ Running next.config took 17ms
 
- HEAD /login 200 in 2.9s (next.js: 2.7s, application-code: 259ms)
- GET /login 200 in 108ms (next.js: 18ms, application-code: 90ms)
+ HEAD /login 200 in 2.8s (next.js: 2.5s, application-code: 232ms)
+ GET /login 200 in 70ms (next.js: 9ms, application-code: 61ms)
