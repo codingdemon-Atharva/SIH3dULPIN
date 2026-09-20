@@ -56,7 +56,7 @@ export async function POST(request: Request) {
           id: "USR-SURVEYOR-001",
           name: "Government Surveyor",
           email: "surveyor@ulpin.gov",
-          passwordHash: "$2b$10$1vp8kYbzpC0v5pSG.ZVO1.dC9lbVizerLudKTRn5LcXhbPOQcDX1u",
+          passwordHash: "$2b$10$U.cXgKoRADJx7ejzuQGtAeZzrinupVhqlDNxSm.aPp.7mo/hvzqNG",
           role: "SURVEYOR",
         };
       } else if (email === "gov.admin@ulpin.gov") {
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
           id: "USR-GOVADMIN-001",
           name: "Government Administrator",
           email: "gov.admin@ulpin.gov",
-          passwordHash: "$2b$10$YzLPxAlXbPc4zdbeL4f49uQrqE8GIOlOwE5UyJdVOK9O0pTe1Yp6y",
+          passwordHash: "$2b$10$U.cXgKoRADJx7ejzuQGtAeZzrinupVhqlDNxSm.aPp.7mo/hvzqNG",
           role: "GOVERNMENT_ADMIN",
         };
       }
