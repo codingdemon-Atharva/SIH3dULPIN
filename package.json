@@ -21,6 +21,7 @@
     "@types/mapbox-gl": "^3.4.1",
     "@types/maplibre-gl": "^1.13.2",
     "bcryptjs": "^3.0.3",
+    "cesium": "^1.145.0",
     "jose": "^6.2.12",
     "leaflet": "^1.9.4",
     "mapbox-gl": "^3.30.0",
