@@ -4,6 +4,7 @@ import { prisma } from "@/src/lib/prisma";
 import { requireGovernmentUser } from "@/src/lib/auth";
 import { revalidatePath } from "next/cache";
 import { validatePropertyRecord, ValidationResult } from "@/src/lib/validator";
+import type { ParsedBuilding } from "@/src/lib/parser/types";
 
 export interface GovernmentDashboardMetrics {
   totalBuildings: number;
@@ -2917,6 +2918,348 @@ export async function getGovernmentLandParcels(options: LandParcelsQueryOptions 
       success: false as const,
       status: 500,
       error: "Failed to retrieve Government land parcels.",
+      data: null,
+    };
+  }
+}
+
+// ==========================================
+// SURVEYOR 2D FILE SUBMISSION WORKFLOW
+// ==========================================
+
+export interface SurveyorSubmissionMetadata {
+  surveyNumber?: string;
+  locationName?: string;
+  landUse?: string;
+  remarks?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface SurveyorSubmissionsQueryOptions {
+  search?: string;
+  filterStatus?: string; // "ALL" | "PENDING_REVIEW" | "APPROVED" | "REJECTED"
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface SurveyorSubmissionItem {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  approvalStatus: string;
+  surveyorId: string | null;
+  surveyorName?: string;
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  surveyNumber: string;
+  totalFloors: number;
+  totalUnits: number;
+  totalAreaSqM: number;
+  hasGeometry: boolean;
+  landUseSummary: string;
+  floors: GovernmentVerificationFloor[];
+  units: GovernmentVerificationUnit[];
+}
+
+export interface SurveyorSubmissionsListResult {
+  metrics: {
+    totalSubmissions: number;
+    pendingCount: number;
+    approvedCount: number;
+    rejectedCount: number;
+  };
+  items: SurveyorSubmissionItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function submitSurveyorCadastralPlan(
+  parsedBuilding: ParsedBuilding,
+  metadata: SurveyorSubmissionMetadata = {}
+) {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+    };
+  }
+
+  if (!parsedBuilding || !Array.isArray(parsedBuilding.floors) || parsedBuilding.floors.length === 0) {
+    return {
+      success: false as const,
+      status: 400,
+      error: "Invalid or empty cadastral plan geometry.",
+    };
+  }
+
+  try {
+    const lat = metadata.latitude ?? parsedBuilding.georeference?.latitude ?? 18.5204;
+    const lng = metadata.longitude ?? parsedBuilding.georeference?.longitude ?? 73.8567;
+    const buildingName = metadata.locationName || parsedBuilding.name || "Surveyor Cadastral Plan";
+
+    const created = await prisma.building.create({
+      data: {
+        name: buildingName,
+        latitude: Number(lat),
+        longitude: Number(lng),
+        approvalStatus: "PENDING_REVIEW",
+        surveyorId: auth.user.id,
+        floors: {
+          create: (parsedBuilding.floors || []).map((floor) => ({
+            floorNumber: floor.floorNumber,
+            elevation: floor.elevation ?? 0,
+            height: floor.height ?? 3.2,
+            units: {
+              create: (floor.units || []).map((unit) => ({
+                unitNumber: unit.unitNumber || unit.id,
+                area: unit.area ?? 0,
+                spaceType: metadata.landUse || unit.spaceType || "RESIDENTIAL",
+                polygon:
+                  typeof unit.polygon === "string"
+                    ? unit.polygon
+                    : JSON.stringify(unit.polygon),
+                ulpin: unit.ulpin || null,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        floors: {
+          include: { units: true },
+        },
+      },
+    });
+
+    revalidatePath("/government/surveyor-submissions");
+    revalidatePath("/government/pending-verification");
+    revalidatePath("/government/dashboard");
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      data: created,
+      message: "Cadastral 2D plan submitted successfully and queued for government verification.",
+    };
+  } catch (error) {
+    console.error("Error submitting surveyor cadastral plan:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to persist surveyor cadastral plan submission.",
+    };
+  }
+}
+
+export async function getSurveyorSubmissions(options: SurveyorSubmissionsQueryOptions = {}) {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      data: null,
+    };
+  }
+
+  const {
+    search = "",
+    filterStatus = "ALL",
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+  } = options;
+
+  const pageNum = Math.max(1, Number(page) || 1);
+  const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
+  const skip = (pageNum - 1) * limitNum;
+
+  try {
+    const isSurveyorRole = auth.user.role === "SURVEYOR";
+    const surveyorFilter = isSurveyorRole ? { surveyorId: auth.user.id } : {};
+
+    const where: Record<string, unknown> = {
+      ...surveyorFilter,
+    };
+
+    if (filterStatus && filterStatus !== "ALL") {
+      where.approvalStatus = filterStatus;
+    }
+
+    if (search && search.trim()) {
+      const query = search.trim();
+      where.OR = [
+        { id: { contains: query, mode: "insensitive" } },
+        { name: { contains: query, mode: "insensitive" } },
+        {
+          floors: {
+            some: {
+              units: {
+                some: {
+                  OR: [
+                    { id: { contains: query, mode: "insensitive" } },
+                    { ulpin: { contains: query, mode: "insensitive" } },
+                    { unitNumber: { contains: query, mode: "insensitive" } },
+                    { spaceType: { contains: query, mode: "insensitive" } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ];
+    }
+
+    let validSortBy = "createdAt";
+    if (["createdAt", "name", "id", "updatedAt"].includes(sortBy)) {
+      validSortBy = sortBy;
+    }
+
+    const orderBy = { [validSortBy]: sortOrder === "asc" ? "asc" : "desc" };
+
+    const [totalSubmissions, pendingCount, approvedCount, rejectedCount, countRes, buildingsRes] =
+      await Promise.all([
+        prisma.building.count({ where: surveyorFilter }),
+        prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "PENDING_REVIEW" } }),
+        prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "APPROVED" } }),
+        prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "REJECTED" } }),
+        prisma.building.count({ where }),
+        prisma.building.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy,
+          include: {
+            floors: {
+              orderBy: { floorNumber: "asc" },
+              include: { units: true },
+            },
+          },
+        }),
+      ]);
+
+    const items: SurveyorSubmissionItem[] = buildingsRes.map((b) => {
+      let totalUnits = 0;
+      let totalAreaSqM = 0;
+      const spaceTypeCounts: Record<string, number> = {};
+      const unitsList: GovernmentVerificationUnit[] = [];
+
+      const floorsSummary = (b.floors || []).map((f) => {
+        const uCount = f.units ? f.units.length : 0;
+        totalUnits += uCount;
+
+        if (Array.isArray(f.units)) {
+          for (const u of f.units) {
+            totalAreaSqM += Number(u.area) || 0;
+
+            const st = u.spaceType || "RESIDENTIAL";
+            spaceTypeCounts[st] = (spaceTypeCounts[st] || 0) + 1;
+
+            let polygonArray: unknown[] = [];
+            if (typeof u.polygon === "string") {
+              try {
+                polygonArray = JSON.parse(u.polygon) as unknown[];
+              } catch {
+                polygonArray = [];
+              }
+            } else if (Array.isArray(u.polygon)) {
+              polygonArray = u.polygon;
+            }
+
+            unitsList.push({
+              id: u.id,
+              unitNumber: u.unitNumber || "UNIT",
+              ulpin: u.ulpin || null,
+              area: Number(u.area) || 0,
+              spaceType: st,
+              floorNumber: f.floorNumber,
+              hasGeometry: Array.isArray(polygonArray) && polygonArray.length >= 3,
+              polygon: u.polygon,
+            });
+          }
+        }
+
+        return {
+          id: f.id,
+          floorNumber: f.floorNumber,
+          elevation: f.elevation,
+          height: f.height,
+          unitsCount: uCount,
+        };
+      });
+
+      const primarySpaceTypes = Object.entries(spaceTypeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([st]) => st);
+
+      const landUseSummary =
+        primarySpaceTypes.length > 0 ? primarySpaceTypes.join(" / ") : "MIXED USE";
+
+      const surveyNumber = `SURVEY-${b.id.substring(0, 8).toUpperCase()}`;
+      const hasValidLat = typeof b.latitude === "number" && !isNaN(b.latitude);
+      const hasValidLng = typeof b.longitude === "number" && !isNaN(b.longitude);
+
+      return {
+        id: b.id,
+        name: b.name || "Cadastral Structure",
+        latitude: b.latitude,
+        longitude: b.longitude,
+        approvalStatus: b.approvalStatus,
+        surveyorId: b.surveyorId || null,
+        surveyorName: auth.user.name,
+        verifiedAt: b.verifiedAt ? b.verifiedAt.toISOString() : null,
+        createdAt: b.createdAt.toISOString(),
+        updatedAt: b.updatedAt.toISOString(),
+        surveyNumber,
+        totalFloors: b.floors ? b.floors.length : 0,
+        totalUnits,
+        totalAreaSqM: Math.round(totalAreaSqM * 100) / 100,
+        hasGeometry: hasValidLat && hasValidLng,
+        landUseSummary,
+        floors: floorsSummary,
+        units: unitsList,
+      };
+    });
+
+    const totalPages = Math.ceil(countRes / limitNum) || 1;
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      data: {
+        metrics: {
+          totalSubmissions,
+          pendingCount,
+          approvedCount,
+          rejectedCount,
+        },
+        items,
+        total: countRes,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+      } as SurveyorSubmissionsListResult,
+    };
+  } catch (error) {
+    console.error("Failed to fetch surveyor submissions:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to retrieve surveyor submissions.",
       data: null,
     };
   }
