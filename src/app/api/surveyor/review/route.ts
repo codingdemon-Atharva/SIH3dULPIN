@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifySession, isGovernmentRole } from "@/src/lib/auth";
+import { prisma } from "@/src/lib/prisma";
 
 export interface ParcelSubmission {
   id: string;
   applicantName: string;
   surfaceParcelId: string;
-  buildingData: any;
+  buildingData: unknown;
   status: "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "REVISION_REQUIRED";
   submittedAt: string;
   surveyorNotes?: string;
@@ -17,7 +18,7 @@ export interface ParcelSubmission {
   };
 }
 
-// In-memory mock storage for pending surveyor reviews
+// In-memory fallback storage for pending surveyor reviews
 const pendingSubmissions: Map<string, ParcelSubmission> = new Map();
 
 async function requireSurveyor() {
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
         "Field data submitted successfully. Pending Cadastral Surveyor approval.",
       submissionId,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Invalid submission data" },
       { status: 400 }
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const auth = await requireSurveyor();
 
-  if (!auth.authorized) {
+  if (!auth.authorized || !auth.user) {
     return auth.response;
   }
 
@@ -111,25 +112,78 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { submissionId, status, surveyorNotes } = body;
 
-    const submission = pendingSubmissions.get(submissionId);
-
-    if (!submission) {
+    if (!submissionId) {
       return NextResponse.json(
-        { success: false, error: "Submission not found" },
-        { status: 404 }
+        { success: false, error: "Missing submissionId" },
+        { status: 400 }
       );
     }
 
-    submission.status = status;
-    submission.surveyorNotes = surveyorNotes;
-    pendingSubmissions.set(submissionId, submission);
+    // Attempt to update database building if submissionId matches a Prisma Building
+    try {
+      const validStatus =
+        status === "APPROVED"
+          ? "APPROVED"
+          : status === "REJECTED"
+          ? "REJECTED"
+          : "PENDING_REVIEW";
 
-    return NextResponse.json({
-      success: true,
-      message: `Parcel status updated to ${status}`,
-      submission,
-    });
-  } catch (error) {
+      const updated = await prisma.building.update({
+        where: { id: submissionId },
+        data: {
+          approvalStatus: validStatus,
+          surveyorId: auth.user.id,
+          verifiedAt: new Date(),
+        },
+      });
+
+      if (validStatus === "APPROVED") {
+        const buildingWithFloors = await prisma.building.findUnique({
+          where: { id: submissionId },
+          include: { floors: { include: { units: true } } },
+        });
+
+        if (buildingWithFloors) {
+          for (const floor of buildingWithFloors.floors) {
+            for (const unit of floor.units) {
+              if (!unit.ulpin || unit.ulpin.trim() === "") {
+                const generatedULPIN = `14-4012-${submissionId.slice(0, 4)}-3D-F${floor.floorNumber}-${unit.unitNumber}`;
+                await prisma.property.update({
+                  where: { id: unit.id },
+                  data: { ulpin: generatedULPIN },
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Cadastral record status updated to ${validStatus}`,
+        data: updated,
+      });
+    } catch {
+      // Fallback to in-memory map if submissionId is a temporary client submission
+      const submission = pendingSubmissions.get(submissionId);
+      if (submission) {
+        submission.status = status;
+        submission.surveyorNotes = surveyorNotes;
+        pendingSubmissions.set(submissionId, submission);
+
+        return NextResponse.json({
+          success: true,
+          message: `Parcel status updated to ${status}`,
+          submission,
+        });
+      }
+
+      return NextResponse.json(
+        { success: false, error: "Submission not found in registry" },
+        { status: 404 }
+      );
+    }
+  } catch {
     return NextResponse.json(
       { success: false, error: "Failed to update review status" },
       { status: 500 }
