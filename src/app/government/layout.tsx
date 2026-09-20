@@ -32,7 +32,8 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
         if (
           data.success &&
           data.user &&
-          (data.user.role === "GOVERNMENT_OFFICER" ||
+          (data.user.role === "SURVEYOR" ||
+            data.user.role === "GOVERNMENT_OFFICER" ||
             data.user.role === "GOVERNMENT_ADMIN")
         ) {
           if (isMounted) {
@@ -66,7 +67,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#081a12] flex items-center justify-center text-[#52b788] text-xs font-bold p-4">
-        Verifying Government Authorization...
+        Verifying Internal Portal Authorization...
       </main>
     );
   }
@@ -77,7 +78,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
 
   const navGroups = [
     {
-      title: "GOVERNMENT",
+      title: "INTERNAL PORTAL",
       items: [
         { id: "dashboard", label: "Dashboard", href: "/government/dashboard" },
       ],
@@ -158,7 +159,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
                 BhuVista
               </span>
               <span className="rounded bg-[#2d6a4f] px-2 py-0.5 text-[10px] font-bold text-white">
-                GOVERNMENT PORTAL
+                INTERNAL PORTAL
               </span>
             </div>
             <p className="text-[10px] font-semibold tracking-wider text-[#3d5a4c] hidden sm:block">
@@ -214,7 +215,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
               className="flex h-9 items-center gap-2 rounded-xl border border-[#e2dad0] bg-white px-3 text-xs font-medium text-[#162a21] hover:bg-[#f3efe6] transition cursor-pointer shadow-sm"
             >
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1b4332] text-[10px] font-bold text-white">
-                GO
+                {user.role === "SURVEYOR" ? "SV" : "GO"}
               </div>
               <div className="hidden sm:flex flex-col text-left">
                 <span className="font-bold text-[#162a21] leading-tight">{user.name}</span>

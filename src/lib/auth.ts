@@ -69,7 +69,15 @@ export async function verifySession(token: string): Promise<SessionUser | null> 
 }
 
 export function isGovernmentRole(role: string): boolean {
-  return role === "GOVERNMENT_OFFICER" || role === "GOVERNMENT_ADMIN";
+  return (
+    role === "SURVEYOR" ||
+    role === "GOVERNMENT_OFFICER" ||
+    role === "GOVERNMENT_ADMIN"
+  );
+}
+
+export function isInternalRole(role: string): boolean {
+  return isGovernmentRole(role);
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

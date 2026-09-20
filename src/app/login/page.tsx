@@ -41,6 +41,7 @@ export default function LoginPage() {
       }
 
       if (
+        data.user?.role === "SURVEYOR" ||
         data.user?.role === "GOVERNMENT_OFFICER" ||
         data.user?.role === "GOVERNMENT_ADMIN"
       ) {
