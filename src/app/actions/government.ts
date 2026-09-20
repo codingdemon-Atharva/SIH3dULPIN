@@ -161,6 +161,744 @@ export async function getGovernmentDashboardOverview() {
 }
 
 // ==========================================
+// ADVANCED INTERNAL ANALYTICS & REPORTS
+// ==========================================
+
+export interface GovernmentAnalyticsData {
+  overview: {
+    totalBuildings: number;
+    totalProperties: number;
+    totalFloors: number;
+    totalAreaSqM: number;
+    avgUnitAreaSqM: number;
+    avgFloorsPerBuilding: number;
+    avgUnitsPerBuilding: number;
+  };
+  approvalDistribution: {
+    approved: number;
+    pending: number;
+    rejected: number;
+    approvedPercent: number;
+  };
+  ulpinDistribution: {
+    assigned: number;
+    unassigned: number;
+    coveragePercent: number;
+  };
+  spaceTypeDistribution: Array<{
+    spaceType: string;
+    count: number;
+    totalAreaSqM: number;
+    areaPercent: number;
+    countPercent: number;
+  }>;
+  validationQualityDistribution: {
+    pass: number;
+    warning: number;
+    fail: number;
+    passPercent: number;
+  };
+  locationClusters: Array<{
+    locationName: string;
+    buildingCount: number;
+    propertyCount: number;
+    totalAreaSqM: number;
+  }>;
+  recentRecords: Array<{
+    id: string;
+    type: "BUILDING" | "PROPERTY";
+    name: string;
+    status: string;
+    date: string;
+  }>;
+}
+
+export async function getGovernmentAnalyticsData() {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      data: null,
+    };
+  }
+
+  try {
+    const [buildings, properties, floors] = await Promise.all([
+      prisma.building.findMany({
+        include: {
+          floors: {
+            include: { units: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.property.findMany({
+        include: {
+          floor: {
+            include: { building: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.floor.findMany(),
+    ]);
+
+    const totalBuildings = buildings.length;
+    const totalProperties = properties.length;
+    const totalFloors = floors.length;
+
+    let totalAreaSqM = 0;
+    let ulpinAssigned = 0;
+    const spaceTypeMap: Record<string, { count: number; totalAreaSqM: number }> = {};
+
+    for (const p of properties) {
+      const area = Number(p.area) || 0;
+      totalAreaSqM += area;
+
+      if (p.ulpin && p.ulpin.trim() !== "") {
+        ulpinAssigned++;
+      }
+
+      const spaceType = (p.spaceType || "UNSPECIFIED").toUpperCase();
+      if (!spaceTypeMap[spaceType]) {
+        spaceTypeMap[spaceType] = { count: 0, totalAreaSqM: 0 };
+      }
+      spaceTypeMap[spaceType].count++;
+      spaceTypeMap[spaceType].totalAreaSqM += area;
+    }
+
+    totalAreaSqM = Math.round(totalAreaSqM * 100) / 100;
+    const ulpinUnassigned = Math.max(0, totalProperties - ulpinAssigned);
+    const ulpinCoveragePercent =
+      totalProperties > 0 ? Math.round((ulpinAssigned / totalProperties) * 100) : 0;
+
+    let approvedCount = 0;
+    let pendingCount = 0;
+    let rejectedCount = 0;
+
+    const locationMap: Record<string, { buildingCount: number; propertyCount: number; totalAreaSqM: number }> = {};
+
+    for (const b of buildings) {
+      if (b.approvalStatus === "APPROVED") approvedCount++;
+      else if (b.approvalStatus === "PENDING_REVIEW") pendingCount++;
+      else if (b.approvalStatus === "REJECTED") rejectedCount++;
+
+      // Extract approximate location cluster from building name or coordinates
+      let locName = "Central District";
+      if (b.name) {
+        if (b.name.toLowerCase().includes("shivajinagar")) locName = "Shivajinagar Cadastre";
+        else if (b.name.toLowerCase().includes("narhe") || b.name.toLowerCase().includes("jspm")) locName = "Narhe Cadastre";
+        else if (b.name.toLowerCase().includes("kothrud")) locName = "Kothrud Zone";
+        else if (b.name.toLowerCase().includes("hadapsar")) locName = "Hadapsar Zone";
+        else locName = b.name.split(" ")[0] || "Central District";
+      }
+
+      if (!locationMap[locName]) {
+        locationMap[locName] = { buildingCount: 0, propertyCount: 0, totalAreaSqM: 0 };
+      }
+      locationMap[locName].buildingCount++;
+
+      for (const f of b.floors) {
+        locationMap[locName].propertyCount += f.units.length;
+        for (const u of f.units) {
+          locationMap[locName].totalAreaSqM += Number(u.area) || 0;
+        }
+      }
+    }
+
+    const approvedPercent =
+      totalBuildings > 0 ? Math.round((approvedCount / totalBuildings) * 100) : 0;
+
+    // Validation Quality Audit using validatePropertyRecord
+    let passVal = 0;
+    let warningVal = 0;
+    let failVal = 0;
+
+    for (const p of properties) {
+      const evaluation = validatePropertyRecord(p);
+      if (evaluation.overallStatus === "PASS") passVal++;
+      else if (evaluation.overallStatus === "WARNING") warningVal++;
+      else if (evaluation.overallStatus === "FAIL") failVal++;
+    }
+
+    const passPercent =
+      totalProperties > 0 ? Math.round((passVal / totalProperties) * 100) : 0;
+
+    const spaceTypeDistribution = Object.entries(spaceTypeMap).map(([st, val]) => ({
+      spaceType: st,
+      count: val.count,
+      totalAreaSqM: Math.round(val.totalAreaSqM * 100) / 100,
+      areaPercent: totalAreaSqM > 0 ? Math.round((val.totalAreaSqM / totalAreaSqM) * 100) : 0,
+      countPercent: totalProperties > 0 ? Math.round((val.count / totalProperties) * 100) : 0,
+    }));
+
+    spaceTypeDistribution.sort((a, b) => b.count - a.count);
+
+    const locationClusters = Object.entries(locationMap).map(([locName, val]) => ({
+      locationName: locName,
+      buildingCount: val.buildingCount,
+      propertyCount: val.propertyCount,
+      totalAreaSqM: Math.round(val.totalAreaSqM * 100) / 100,
+    }));
+
+    // Recent Records Activity
+    const recentRecords = [
+      ...buildings.slice(0, 5).map((b) => ({
+        id: b.id,
+        type: "BUILDING" as const,
+        name: b.name || "Cadastral Structure",
+        status: b.approvalStatus,
+        date: b.createdAt.toISOString(),
+      })),
+      ...properties.slice(0, 5).map((p) => ({
+        id: p.id,
+        type: "PROPERTY" as const,
+        name: `Unit ${p.unitNumber} (${p.floor.building.name || "Structure"})`,
+        status: p.ulpin ? "ULPIN_ASSIGNED" : "UNASSIGNED",
+        date: p.createdAt.toISOString(),
+      })),
+    ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 8);
+
+    const data: GovernmentAnalyticsData = {
+      overview: {
+        totalBuildings,
+        totalProperties,
+        totalFloors,
+        totalAreaSqM,
+        avgUnitAreaSqM: totalProperties > 0 ? Math.round((totalAreaSqM / totalProperties) * 100) / 100 : 0,
+        avgFloorsPerBuilding: totalBuildings > 0 ? Math.round((totalFloors / totalBuildings) * 10) / 10 : 0,
+        avgUnitsPerBuilding: totalBuildings > 0 ? Math.round((totalProperties / totalBuildings) * 10) / 10 : 0,
+      },
+      approvalDistribution: {
+        approved: approvedCount,
+        pending: pendingCount,
+        rejected: rejectedCount,
+        approvedPercent,
+      },
+      ulpinDistribution: {
+        assigned: ulpinAssigned,
+        unassigned: ulpinUnassigned,
+        coveragePercent: ulpinCoveragePercent,
+      },
+      spaceTypeDistribution,
+      validationQualityDistribution: {
+        pass: passVal,
+        warning: warningVal,
+        fail: failVal,
+        passPercent,
+      },
+      locationClusters,
+      recentRecords,
+    };
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      data,
+    };
+  } catch (error) {
+    console.error("Failed to fetch government analytics data:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to retrieve Government analytics metrics.",
+      data: null,
+    };
+  }
+}
+
+export interface ReportsQueryOptions {
+  reportType: "property-summary" | "ulpin-summary" | "verification-summary" | "validation-summary" | "land-use-summary";
+  search?: string;
+  filterStatus?: string;
+  filterSpaceType?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface GovernmentReportRow {
+  id: string;
+  column1: string;
+  column2: string;
+  column3: string;
+  column4: string;
+  column5: string;
+  column6: string;
+  column7: string;
+  rawObject: Record<string, any>;
+}
+
+export interface GovernmentReportsResult {
+  reportType: string;
+  headers: string[];
+  rows: GovernmentReportRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  summaryStats: {
+    totalRecords: number;
+    primaryMetricLabel: string;
+    primaryMetricValue: string;
+    secondaryMetricLabel: string;
+    secondaryMetricValue: string;
+  };
+}
+
+export async function getGovernmentReportsData(options: ReportsQueryOptions) {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      data: null,
+    };
+  }
+
+  const {
+    reportType,
+    search = "",
+    filterStatus = "ALL",
+    filterSpaceType = "ALL",
+    page = 1,
+    limit = 15,
+  } = options;
+
+  const pageNum = Math.max(1, Number(page) || 1);
+  const limitNum = Math.max(1, Math.min(100, Number(limit) || 15));
+
+  try {
+    if (reportType === "property-summary") {
+      const properties = await prisma.property.findMany({
+        include: {
+          floor: {
+            include: { building: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      let filtered = properties.filter((p) => {
+        if (filterStatus !== "ALL" && p.floor.building.approvalStatus !== filterStatus) return false;
+        if (filterSpaceType !== "ALL" && p.spaceType.toUpperCase() !== filterSpaceType.toUpperCase()) return false;
+        if (search.trim()) {
+          const q = search.trim().toLowerCase();
+          const matches =
+            p.id.toLowerCase().includes(q) ||
+            p.unitNumber.toLowerCase().includes(q) ||
+            (p.ulpin && p.ulpin.toLowerCase().includes(q)) ||
+            (p.floor.building.name && p.floor.building.name.toLowerCase().includes(q)) ||
+            p.spaceType.toLowerCase().includes(q);
+          if (!matches) return false;
+        }
+        return true;
+      });
+
+      const total = filtered.length;
+      const paginated = filtered.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      let totalArea = 0;
+      for (const p of filtered) totalArea += Number(p.area) || 0;
+
+      const headers = ["Property ID", "Building Name", "Unit No.", "ULPIN", "Space Type", "Area (m²)", "Verification Status"];
+      const rows: GovernmentReportRow[] = paginated.map((p) => ({
+        id: p.id,
+        column1: p.id.substring(0, 13),
+        column2: p.floor.building.name || "Cadastral Structure",
+        column3: p.unitNumber || "UNIT",
+        column4: p.ulpin || "UNASSIGNED",
+        column5: p.spaceType || "RESIDENTIAL",
+        column6: `${Number(p.area).toFixed(2)} m²`,
+        column7: p.floor.building.approvalStatus,
+        rawObject: {
+          propertyId: p.id,
+          buildingId: p.floor.building.id,
+          buildingName: p.floor.building.name,
+          unitNumber: p.unitNumber,
+          ulpin: p.ulpin || "",
+          spaceType: p.spaceType,
+          areaSqM: p.area,
+          floorNumber: p.floor.floorNumber,
+          approvalStatus: p.floor.building.approvalStatus,
+          createdAt: p.createdAt.toISOString(),
+        },
+      }));
+
+      return {
+        success: true as const,
+        status: 200,
+        error: null,
+        data: {
+          reportType,
+          headers,
+          rows,
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+          summaryStats: {
+            totalRecords: total,
+            primaryMetricLabel: "Total Measure Area",
+            primaryMetricValue: `${Math.round(totalArea).toLocaleString()} m²`,
+            secondaryMetricLabel: "Avg Unit Area",
+            secondaryMetricValue: total > 0 ? `${(totalArea / total).toFixed(1)} m²` : "0 m²",
+          },
+        } as GovernmentReportsResult,
+      };
+    } else if (reportType === "ulpin-summary") {
+      const properties = await prisma.property.findMany({
+        include: {
+          floor: {
+            include: { building: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      let filtered = properties.filter((p) => {
+        if (filterStatus === "ASSIGNED" && (!p.ulpin || !p.ulpin.trim())) return false;
+        if (filterStatus === "UNASSIGNED" && p.ulpin && p.ulpin.trim()) return false;
+        if (filterSpaceType !== "ALL" && p.spaceType.toUpperCase() !== filterSpaceType.toUpperCase()) return false;
+        if (search.trim()) {
+          const q = search.trim().toLowerCase();
+          const matches =
+            p.id.toLowerCase().includes(q) ||
+            p.unitNumber.toLowerCase().includes(q) ||
+            (p.ulpin && p.ulpin.toLowerCase().includes(q)) ||
+            (p.floor.building.name && p.floor.building.name.toLowerCase().includes(q));
+          if (!matches) return false;
+        }
+        return true;
+      });
+
+      const total = filtered.length;
+      const paginated = filtered.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      let assignedCount = 0;
+      for (const p of filtered) {
+        if (p.ulpin && p.ulpin.trim()) assignedCount++;
+      }
+
+      const headers = ["Unit ID", "3D ULPIN Identity", "Building Structure", "Floor Level", "Space Type", "Registration Date", "ULPIN Status"];
+      const rows: GovernmentReportRow[] = paginated.map((p) => ({
+        id: p.id,
+        column1: p.id.substring(0, 13),
+        column2: p.ulpin || "Awaiting Assignment",
+        column3: p.floor.building.name || "Cadastral Structure",
+        column4: `Floor ${p.floor.floorNumber}`,
+        column5: p.spaceType || "RESIDENTIAL",
+        column6: p.createdAt.toISOString().substring(0, 10),
+        column7: p.ulpin && p.ulpin.trim() ? "ASSIGNED" : "UNASSIGNED",
+        rawObject: {
+          unitId: p.id,
+          ulpin: p.ulpin || "",
+          buildingName: p.floor.building.name,
+          floorNumber: p.floor.floorNumber,
+          spaceType: p.spaceType,
+          ulpinStatus: p.ulpin && p.ulpin.trim() ? "ASSIGNED" : "UNASSIGNED",
+          createdAt: p.createdAt.toISOString(),
+        },
+      }));
+
+      return {
+        success: true as const,
+        status: 200,
+        error: null,
+        data: {
+          reportType,
+          headers,
+          rows,
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+          summaryStats: {
+            totalRecords: total,
+            primaryMetricLabel: "Assigned ULPINs",
+            primaryMetricValue: `${assignedCount} / ${total}`,
+            secondaryMetricLabel: "Coverage Rate",
+            secondaryMetricValue: total > 0 ? `${Math.round((assignedCount / total) * 100)}%` : "0%",
+          },
+        } as GovernmentReportsResult,
+      };
+    } else if (reportType === "verification-summary") {
+      const buildings = await prisma.building.findMany({
+        include: {
+          floors: {
+            include: { units: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      let filtered = buildings.filter((b) => {
+        if (filterStatus !== "ALL" && b.approvalStatus !== filterStatus) return false;
+        if (search.trim()) {
+          const q = search.trim().toLowerCase();
+          const matches =
+            b.id.toLowerCase().includes(q) ||
+            b.name.toLowerCase().includes(q) ||
+            (b.surveyorId && b.surveyorId.toLowerCase().includes(q));
+          if (!matches) return false;
+        }
+        return true;
+      });
+
+      const total = filtered.length;
+      const paginated = filtered.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      let approvedCount = 0;
+      let totalUnitsCount = 0;
+      for (const b of filtered) {
+        if (b.approvalStatus === "APPROVED") approvedCount++;
+        for (const f of b.floors) totalUnitsCount += f.units.length;
+      }
+
+      const headers = ["Building ID", "Structure Name", "Floors", "Units", "Surveyor ID", "Verified Date", "Verification Status"];
+      const rows: GovernmentReportRow[] = paginated.map((b) => {
+        let uCount = 0;
+        for (const f of b.floors) uCount += f.units.length;
+
+        return {
+          id: b.id,
+          column1: b.id.substring(0, 13),
+          column2: b.name || "Cadastral Structure",
+          column3: `${b.floors.length} Floors`,
+          column4: `${uCount} Units`,
+          column5: b.surveyorId || "N/A",
+          column6: b.verifiedAt ? b.verifiedAt.toISOString().substring(0, 10) : "Pending",
+          column7: b.approvalStatus,
+          rawObject: {
+            buildingId: b.id,
+            buildingName: b.name,
+            floorsCount: b.floors.length,
+            unitsCount: uCount,
+            surveyorId: b.surveyorId || "",
+            verifiedAt: b.verifiedAt ? b.verifiedAt.toISOString() : "",
+            approvalStatus: b.approvalStatus,
+            createdAt: b.createdAt.toISOString(),
+          },
+        };
+      });
+
+      return {
+        success: true as const,
+        status: 200,
+        error: null,
+        data: {
+          reportType,
+          headers,
+          rows,
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+          summaryStats: {
+            totalRecords: total,
+            primaryMetricLabel: "Approved Structures",
+            primaryMetricValue: `${approvedCount} / ${total}`,
+            secondaryMetricLabel: "Total Registered Units",
+            secondaryMetricValue: `${totalUnitsCount}`,
+          },
+        } as GovernmentReportsResult,
+      };
+    } else if (reportType === "validation-summary") {
+      const properties = await prisma.property.findMany({
+        include: {
+          floor: {
+            include: { building: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const evaluated = properties.map((p) => {
+        const evalRes = validatePropertyRecord(p);
+        return {
+          property: p,
+          evaluation: evalRes,
+        };
+      });
+
+      let filtered = evaluated.filter((item) => {
+        if (filterStatus !== "ALL" && item.evaluation.overallStatus !== filterStatus) return false;
+        if (filterSpaceType !== "ALL" && item.property.spaceType.toUpperCase() !== filterSpaceType.toUpperCase()) return false;
+        if (search.trim()) {
+          const q = search.trim().toLowerCase();
+          const matches =
+            item.property.id.toLowerCase().includes(q) ||
+            item.property.unitNumber.toLowerCase().includes(q) ||
+            (item.property.ulpin && item.property.ulpin.toLowerCase().includes(q)) ||
+            (item.property.floor.building.name && item.property.floor.building.name.toLowerCase().includes(q));
+          if (!matches) return false;
+        }
+        return true;
+      });
+
+      const total = filtered.length;
+      const paginated = filtered.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      let passCount = 0;
+      for (const item of filtered) {
+        if (item.evaluation.overallStatus === "PASS") passCount++;
+      }
+
+      const headers = ["Property ID", "Building Name", "Unit No.", "Space Type", "Detected Issue", "Checks Passed", "Validation Quality"];
+      const rows: GovernmentReportRow[] = paginated.map((item) => ({
+        id: item.property.id,
+        column1: item.property.id.substring(0, 13),
+        column2: item.property.floor.building.name || "Cadastral Structure",
+        column3: item.property.unitNumber || "UNIT",
+        column4: item.property.spaceType || "RESIDENTIAL",
+        column5: item.evaluation.primaryIssue,
+        column6: `${item.evaluation.checks.filter((c) => c.status === "PASS").length} / ${item.evaluation.checks.length}`,
+        column7: item.evaluation.overallStatus,
+        rawObject: {
+          propertyId: item.property.id,
+          buildingName: item.property.floor.building.name,
+          unitNumber: item.property.unitNumber,
+          spaceType: item.property.spaceType,
+          detectedIssue: item.evaluation.primaryIssue,
+          validationStatus: item.evaluation.overallStatus,
+        },
+      }));
+
+      return {
+        success: true as const,
+        status: 200,
+        error: null,
+        data: {
+          reportType,
+          headers,
+          rows,
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+          summaryStats: {
+            totalRecords: total,
+            primaryMetricLabel: "Pass Quality Count",
+            primaryMetricValue: `${passCount} / ${total}`,
+            secondaryMetricLabel: "Quality Pass Rate",
+            secondaryMetricValue: total > 0 ? `${Math.round((passCount / total) * 100)}%` : "0%",
+          },
+        } as GovernmentReportsResult,
+      };
+    } else {
+      // land-use-summary
+      const properties = await prisma.property.findMany({
+        include: {
+          floor: {
+            include: { building: true },
+          },
+        },
+      });
+
+      const spaceTypeMap: Record<
+        string,
+        { count: number; totalAreaSqM: number; ulpinCount: number }
+      > = {};
+
+      let globalTotalArea = 0;
+
+      for (const p of properties) {
+        const area = Number(p.area) || 0;
+        globalTotalArea += area;
+        const st = (p.spaceType || "UNSPECIFIED").toUpperCase();
+
+        if (!spaceTypeMap[st]) {
+          spaceTypeMap[st] = { count: 0, totalAreaSqM: 0, ulpinCount: 0 };
+        }
+        spaceTypeMap[st].count++;
+        spaceTypeMap[st].totalAreaSqM += area;
+        if (p.ulpin && p.ulpin.trim()) spaceTypeMap[st].ulpinCount++;
+      }
+
+      let summaryRows = Object.entries(spaceTypeMap).map(([st, val]) => ({
+        spaceType: st,
+        count: val.count,
+        totalAreaSqM: Math.round(val.totalAreaSqM * 100) / 100,
+        avgAreaSqM: val.count > 0 ? Math.round((val.totalAreaSqM / val.count) * 10) / 10 : 0,
+        areaPercent: globalTotalArea > 0 ? Math.round((val.totalAreaSqM / globalTotalArea) * 100) : 0,
+        ulpinCoveragePercent: val.count > 0 ? Math.round((val.ulpinCount / val.count) * 100) : 0,
+      }));
+
+      if (filterSpaceType !== "ALL") {
+        summaryRows = summaryRows.filter((r) => r.spaceType.toUpperCase() === filterSpaceType.toUpperCase());
+      }
+
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        summaryRows = summaryRows.filter((r) => r.spaceType.toLowerCase().includes(q));
+      }
+
+      summaryRows.sort((a, b) => b.totalAreaSqM - a.totalAreaSqM);
+
+      const total = summaryRows.length;
+      const paginated = summaryRows.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      const headers = ["Land Use Category", "Registered Units", "Total Measured Area", "Average Unit Area", "Area % Share", "ULPIN Coverage", "Classification"];
+      const rows: GovernmentReportRow[] = paginated.map((r) => ({
+        id: r.spaceType,
+        column1: r.spaceType,
+        column2: `${r.count} Units`,
+        column3: `${r.totalAreaSqM.toLocaleString()} m²`,
+        column4: `${r.avgAreaSqM} m²`,
+        column5: `${r.areaPercent}%`,
+        column6: `${r.ulpinCoveragePercent}%`,
+        column7: "REGISTERED",
+        rawObject: {
+          landUseCategory: r.spaceType,
+          unitsCount: r.count,
+          totalAreaSqM: r.totalAreaSqM,
+          avgAreaSqM: r.avgAreaSqM,
+          areaPercentage: r.areaPercent,
+          ulpinCoveragePercentage: r.ulpinCoveragePercent,
+        },
+      }));
+
+      return {
+        success: true as const,
+        status: 200,
+        error: null,
+        data: {
+          reportType,
+          headers,
+          rows,
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+          summaryStats: {
+            totalRecords: total,
+            primaryMetricLabel: "Total Classified Land Area",
+            primaryMetricValue: `${Math.round(globalTotalArea).toLocaleString()} m²`,
+            secondaryMetricLabel: "Land Use Categories",
+            secondaryMetricValue: `${Object.keys(spaceTypeMap).length} Categories`,
+          },
+        } as GovernmentReportsResult,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch government report data:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to generate requested government report.",
+      data: null,
+    };
+  }
+}
+
+// ==========================================
 // GIS QUALITY CONTROL & DATA VALIDATION
 // ==========================================
 
