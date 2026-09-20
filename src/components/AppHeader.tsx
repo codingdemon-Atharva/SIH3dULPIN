@@ -246,16 +246,13 @@ export function AppHeader({
               </div>
               <div className="pt-2 space-y-1">
                 {userRole === "SURVEYOR" && isPublicViewer && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onRoleModeChange("SURVEYOR");
-                      setShowProfile(false);
-                    }}
-                    className="w-full text-left rounded-lg px-2 py-1.5 text-[#2d6a4f] font-bold hover:bg-[#f3efe6]"
+                  <Link
+                    href="/government/dashboard"
+                    onClick={() => setShowProfile(false)}
+                    className="block w-full text-left rounded-lg px-2 py-1.5 text-[#2d6a4f] font-bold hover:bg-[#f3efe6]"
                   >
-                    Switch to Surveyor Portal
-                  </button>
+                    Open Internal Portal →
+                  </Link>
                 )}
                 <a
                   href="/login"

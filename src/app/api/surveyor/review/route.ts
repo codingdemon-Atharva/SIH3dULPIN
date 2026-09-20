@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { verifySession } from "@/src/lib/auth";
+import { verifySession, isGovernmentRole } from "@/src/lib/auth";
 
 export interface ParcelSubmission {
   id: string;
@@ -46,11 +46,11 @@ async function requireSurveyor() {
     };
   }
 
-  if (user.role !== "SURVEYOR") {
+  if (!isGovernmentRole(user.role)) {
     return {
       authorized: false,
       response: NextResponse.json(
-        { success: false, error: "Surveyor access required." },
+        { success: false, error: "Internal portal authorization required." },
         { status: 403 }
       ),
     };
