@@ -5,535 +5,165 @@
 ▲ Next.js 16.3.4 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 587ms
-✓ Running next.config took 19ms
+✓ Ready in 540ms
+✓ Running next.config took 17ms
 
- GET /login 200 in 3.4s (next.js: 3.1s, application-code: 330ms)
+○ Compiling / ...
+ GET / 200 in 7.1s (next.js: 6.0s, proxy.ts: 467ms, application-code: 657ms)
+ POST / 200 in 298ms (next.js: 19ms, proxy.ts: 36ms, application-code: 243ms)
+  └─ ƒ getPublicNotifications() in 4ms src/actions/getPublicNotifications.ts
 prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique()` invocation in
-/app/.next/dev/server/chunks/[root-of-the-server]__0n8qx6y._.js:118:160
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  115 }
-  116 let user = null;
-  117 try {
-→ 118     user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
-Database unavailable during login, falling back to default seed accounts if matched: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique()` invocation in
-/app/.next/dev/server/chunks/[root-of-the-server]__0n8qx6y._.js:118:160
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  115 }
-  116 let user = null;
-  117 try {
-→ 118     user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
-    at <unknown> (src/app/api/auth/login/route.ts:45:32)
-    at async POST (src/app/api/auth/login/route.ts:45:14)
-  43 |
-  44 |     try {
-> 45 |       user = await prisma.user.findUnique({
-     |                                ^
-  46 |         where: { email },
-  47 |       });
-  48 |     } catch (dbError) { {
-  code: 'ECONNREFUSED',
-  meta: { modelName: 'User' },
-  clientVersion: '7.10.0'
-}
- POST /api/auth/login 401 in 1719ms (next.js: 580ms, application-code: 1139ms)
- GET /login 200 in 82ms (next.js: 10ms, application-code: 72ms)
- GET /login 200 in 58ms (next.js: 4ms, application-code: 53ms)
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique()` invocation in
-/app/.next/dev/server/chunks/[root-of-the-server]__0n8qx6y._.js:118:160
-
-  115 }
-  116 let user = null;
-  117 try {
-→ 118     user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique(
-
-Database unavailable during login, falling back to default seed accounts if matched: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique()` invocation in
-/app/.next/dev/server/chunks/[root-of-the-server]__0n8qx6y._.js:118:160
-
-  115 }
-  116 let user = null;
-  117 try {
-→ 118     user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.findUnique(
-
-    at <unknown> (src/app/api/auth/login/route.ts:45:32)
-    at async POST (src/app/api/auth/login/route.ts:45:14)
-  43 |
-  44 |     try {
-> 45 |       user = await prisma.user.findUnique({
-     |                                ^
-  46 |         where: { email },
-  47 |       });
-  48 |     } catch (dbError) { {
-  code: 'ECONNREFUSED',
-  meta: { modelName: 'User' },
-  clientVersion: '7.10.0'
-}
- POST /api/auth/login 401 in 163ms (next.js: 5ms, application-code: 159ms)
- GET /login 200 in 51ms (next.js: 4ms, application-code: 47ms)
- GET /login 200 in 54ms (next.js: 4ms, application-code: 50ms)
-prisma:error
-Invalid `prisma.user.findUnique()` invocation:
-
-
-
-Database unavailable during login, falling back to default seed accounts if matched: Error [PrismaClientKnownRequestError]:
-Invalid `prisma.user.findUnique()` invocation:
-
-
-
-    at async POST (src/app/api/auth/login/route.ts:45:14)
-  43 |
-  44 |     try {
-> 45 |       user = await prisma.user.findUnique({
-     |              ^
-  46 |         where: { email },
-  47 |       });
-  48 |     } catch (dbError) { {
-  code: 'ECONNREFUSED',
-  meta: { modelName: 'User' },
-  clientVersion: '7.10.0'
-}
- POST /api/auth/login 200 in 165ms (next.js: 5ms, application-code: 159ms)
- GET /government/dashboard 200 in 1197ms (next.js: 1114ms, proxy.ts: 12ms, application-code: 71ms)
- GET /government/dashboard 200 in 46ms (next.js: 6ms, proxy.ts: 9ms, application-code: 32ms)
- GET /api/auth/me 200 in 202ms (next.js: 184ms, application-code: 17ms)
- GET /api/auth/me 200 in 11ms (next.js: 3ms, application-code: 8ms)
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:109:153
-
-  106 let spaceTypeDistribution = [];
-  107 try {
-  108     const [bCount, bStatusGroups, pCount, vPCount, areaAgg, uAssignedCount, sGroups] = await Promise.all([
-→ 109         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-Database query failed or unavailable, returning zero state metrics: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:109:153
-
-  106 let spaceTypeDistribution = [];
-  107 try {
-  108     const [bCount, bStatusGroups, pCount, vPCount, areaAgg, uAssignedCount, sGroups] = await Promise.all([
-→ 109         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-    at <unknown> (src/app/actions/government.ts:66:25)
-    at async getGovernmentDashboardOverview (src/app/actions/government.ts:65:11)
-  64 |         sGroups,
-  65 |       ] = await Promise.all([
-> 66 |         prisma.building.count(),
-     |                         ^
-  67 |         prisma.building.groupBy({
-  68 |           by: ["approvalStatus"],
-  69 |           _count: { _all: true }, {
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
   code: 'ECONNREFUSED',
   meta: { modelName: 'Building' },
   clientVersion: '7.10.0'
 }
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.groupBy()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:110:153
-
-  107 try {
-  108     const [bCount, bStatusGroups, pCount, vPCount, areaAgg, uAssignedCount, sGroups] = await Promise.all([
-  109         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(),
-→ 110         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.groupBy(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:118:153
-
-  115         _all: true
-  116     }
-  117 }),
-→ 118 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:119:153
-
-  116     }
-  117 }),
-  118 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(),
-→ 119 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.aggregate()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:128:153
-
-  125         }
-  126     }
-  127 }),
-→ 128 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.aggregate(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:133:153
-
-  130         area: true
-  131     }
-  132 }),
-→ 133 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.groupBy()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:143:153
-
-  140         }
-  141     }
-  142 }),
-→ 143 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.groupBy(
-
+ GET /api/auth/me 401 in 2.7s (next.js: 2.7s, application-code: 57ms)
+ GET /api/auth/me 401 in 12ms (next.js: 4ms, application-code: 8ms)
+ POST / 200 in 2.3s (next.js: 5ms, proxy.ts: 16ms, application-code: 2.3s)
+  └─ ƒ getPublicVerifiedBuildings() in 2028ms src/actions/getPublicBuildings.ts
+ POST / 200 in 28ms (next.js: 4ms, proxy.ts: 11ms, application-code: 14ms)
+  └─ ƒ getPublicNotifications() in 0ms src/actions/getPublicNotifications.ts
 prisma:error
 Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:242:153
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  239 let users = [];
-  240 try {
-  241     const [bRes, pRes, uRes] = await Promise.all([
-→ 242         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
-Database query failed or unavailable, deriving fallback activity history: Error [PrismaClientKnownRequestError]:
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
 Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:242:153
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  239 let users = [];
-  240 try {
-  241     const [bRes, pRes, uRes] = await Promise.all([
-→ 242         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
-    at <unknown> (src/app/actions/government.ts:279:25)
-    at async getGovernmentActivityHistory (src/app/actions/government.ts:278:34)
-    at async getGovernmentDashboardOverview (src/app/actions/government.ts:142:27)
-  277 |     try {
-  278 |       const [bRes, pRes, uRes] = await Promise.all([
-> 279 |         prisma.building.findMany({
-      |                         ^
-  280 |           include: {
-  281 |             floors: {
-  282 |               include: { units: true }, {
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
   code: 'ECONNREFUSED',
   meta: { modelName: 'Building' },
   clientVersion: '7.10.0'
 }
+ POST / 200 in 76ms (next.js: 4ms, proxy.ts: 16ms, application-code: 56ms)
+  └─ ƒ getPublicVerifiedBuildings() in 11ms src/actions/getPublicBuildings.ts
+[browser] Image "office" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "gate" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "lift_gate" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "canoe" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "atm" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "badminton" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+ GET / 200 in 63ms (next.js: 8ms, proxy.ts: 5ms, application-code: 50ms)
+ GET /api/auth/me 401 in 19ms (next.js: 9ms, application-code: 10ms)
+ POST / 200 in 37ms (next.js: 7ms, proxy.ts: 10ms, application-code: 20ms)
+  └─ ƒ getPublicNotifications() in 0ms src/actions/getPublicNotifications.ts
+ GET /api/auth/me 401 in 10ms (next.js: 3ms, application-code: 6ms)
 prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:254:153
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  251         createdAt: "desc"
-  252     }
-  253 }),
-→ 254 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.findMany(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].user.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:266:149
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  263         createdAt: "desc"
-  264     }
-  265 }),
-→ 266 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].user.findMany(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
- POST /government/dashboard 200 in 847ms (next.js: 7ms, proxy.ts: 9ms, application-code: 831ms)
-  └─ ƒ getGovernmentDashboardOverview() in 773ms src/actions/government.ts
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:109:153
-
-  106 let spaceTypeDistribution = [];
-  107 try {
-  108     const [bCount, bStatusGroups, pCount, vPCount, areaAgg, uAssignedCount, sGroups] = await Promise.all([
-→ 109         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-Database query failed or unavailable, returning zero state metrics: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:109:153
-
-  106 let spaceTypeDistribution = [];
-  107 try {
-  108     const [bCount, bStatusGroups, pCount, vPCount, areaAgg, uAssignedCount, sGroups] = await Promise.all([
-→ 109         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-    at <unknown> (src/app/actions/government.ts:66:25)
-    at async getGovernmentDashboardOverview (src/app/actions/government.ts:65:11)
-  64 |         sGroups,
-  65 |       ] = await Promise.all([
-> 66 |         prisma.building.count(),
-     |                         ^
-  67 |         prisma.building.groupBy({
-  68 |           by: ["approvalStatus"],
-  69 |           _count: { _all: true }, {
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
   code: 'ECONNREFUSED',
   meta: { modelName: 'Building' },
   clientVersion: '7.10.0'
 }
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.groupBy()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:110:153
-
-  107 try {
-  108     const [bCount, bStatusGroups, pCount, vPCount, areaAgg, uAssignedCount, sGroups] = await Promise.all([
-  109         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(),
-→ 110         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.groupBy(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:118:153
-
-  115         _all: true
-  116     }
-  117 }),
-→ 118 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:119:153
-
-  116     }
-  117 }),
-  118 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(),
-→ 119 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.aggregate()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:128:153
-
-  125         }
-  126     }
-  127 }),
-→ 128 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.aggregate(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:133:153
-
-  130         area: true
-  131     }
-  132 }),
-→ 133 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.groupBy()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:143:153
-
-  140         }
-  141     }
-  142 }),
-→ 143 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.groupBy(
-
+ POST / 200 in 47ms (next.js: 7ms, proxy.ts: 15ms, application-code: 25ms)
+  └─ ƒ getPublicVerifiedBuildings() in 11ms src/actions/getPublicBuildings.ts
+ POST / 200 in 39ms (next.js: 7ms, proxy.ts: 14ms, application-code: 18ms)
+  └─ ƒ getPublicNotifications() in 0ms src/actions/getPublicNotifications.ts
 prisma:error
 Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:242:153
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  239 let users = [];
-  240 try {
-  241     const [bRes, pRes, uRes] = await Promise.all([
-→ 242         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
-Database query failed or unavailable, deriving fallback activity history: Error [PrismaClientKnownRequestError]:
+Failed to fetch public verified buildings: Error [PrismaClientKnownRequestError]:
 Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:242:153
+/app/.next/dev/server/chunks/ssr/_1bg9k7k._.js:380:177
 
-  239 let users = [];
-  240 try {
-  241     const [bRes, pRes, uRes] = await Promise.all([
-→ 242         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
+  377 ;
+  378 async function getPublicVerifiedBuildings() {
+  379     try {
+→ 380         const verifiedBuildings = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
 
-    at <unknown> (src/app/actions/government.ts:279:25)
-    at async getGovernmentActivityHistory (src/app/actions/government.ts:278:34)
-    at async getGovernmentDashboardOverview (src/app/actions/government.ts:142:27)
-  277 |     try {
-  278 |       const [bRes, pRes, uRes] = await Promise.all([
-> 279 |         prisma.building.findMany({
-      |                         ^
-  280 |           include: {
-  281 |             floors: {
-  282 |               include: { units: true }, {
+    at <unknown> (src/app/actions/getPublicBuildings.ts:7:53)
+    at async getPublicVerifiedBuildings (src/app/actions/getPublicBuildings.ts:7:31)
+   5 | export async function getPublicVerifiedBuildings() {
+   6 |   try {
+>  7 |     const verifiedBuildings = await prisma.building.findMany({
+     |                                                     ^
+   8 |       where: {
+   9 |         approvalStatus: "APPROVED", // Strict verification filter
+  10 |       }, {
   code: 'ECONNREFUSED',
   meta: { modelName: 'Building' },
   clientVersion: '7.10.0'
 }
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:254:153
-
-  251         createdAt: "desc"
-  252     }
-  253 }),
-→ 254 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].property.findMany(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].user.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:266:149
-
-  263         createdAt: "desc"
-  264     }
-  265 }),
-→ 266 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].user.findMany(
-
- POST /government/dashboard 200 in 75ms (next.js: 4ms, proxy.ts: 9ms, application-code: 63ms)
-  └─ ƒ getGovernmentDashboardOverview() in 45ms src/actions/government.ts
- GET /government/surveyor-submissions 200 in 3.2s (next.js: 2.6s, proxy.ts: 6ms, application-code: 576ms)
- GET /api/auth/me 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/auth/me 200 in 10ms (next.js: 2ms, application-code: 7ms)
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2642:149
-
-  2639     [validSortBy]: sortOrder === "asc" ? "asc" : "desc"
-  2640 };
-  2641 const [totalSubmissions, pendingCount, approvedCount, rejectedCount, countRes, buildingsRes] = await Promise.all([
-→ 2642     __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-Failed to fetch surveyor submissions: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2642:149
-
-  2639     [validSortBy]: sortOrder === "asc" ? "asc" : "desc"
-  2640 };
-  2641 const [totalSubmissions, pendingCount, approvedCount, rejectedCount, countRes, buildingsRes] = await Promise.all([
-→ 2642     __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-    at <unknown> (src/app/actions/government.ts:3135:25)
-    at async getSurveyorSubmissions (src/app/actions/government.ts:3134:7)
-  3133 |     const [totalSubmissions, pendingCount, approvedCount, rejectedCount, countRes, buildingsRes] =
-  3134 |       await Promise.all([
-> 3135 |         prisma.building.count({ where: surveyorFilter }),
-       |                         ^
-  3136 |         prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "PENDING_REVIEW" } }),
-  3137 |         prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "APPROVED" } }),
-  3138 |         prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "REJECTED" } }), {
-  code: 'ECONNREFUSED',
-  meta: { modelName: 'Building' },
-  clientVersion: '7.10.0'
-}
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2645:149
-
-  2642 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count({
-  2643     where: surveyorFilter
-  2644 }),
-→ 2645 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2651:149
-
-  2648         approvalStatus: "PENDING_REVIEW"
-  2649     }
-  2650 }),
-→ 2651 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2657:149
-
-  2654         approvalStatus: "APPROVED"
-  2655     }
-  2656 }),
-→ 2657 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2663:149
-
-  2660         approvalStatus: "REJECTED"
-  2661     }
-  2662 }),
-→ 2663 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2666:149
-
-  2663 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count({
-  2664     where
-  2665 }),
-→ 2666 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
-
- POST /government/surveyor-submissions 200 in 71ms (next.js: 6ms, proxy.ts: 6ms, application-code: 59ms)
-  └─ ƒ getSurveyorSubmissions({"filterStatus":"ALL","limit":10,"page":1,"...":"3 items not stringified"}) in 26ms src/actions/government.ts
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2642:149
-
-  2639     [validSortBy]: sortOrder === "asc" ? "asc" : "desc"
-  2640 };
-  2641 const [totalSubmissions, pendingCount, approvedCount, rejectedCount, countRes, buildingsRes] = await Promise.all([
-→ 2642     __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-Failed to fetch surveyor submissions: Error [PrismaClientKnownRequestError]:
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2642:149
-
-  2639     [validSortBy]: sortOrder === "asc" ? "asc" : "desc"
-  2640 };
-  2641 const [totalSubmissions, pendingCount, approvedCount, rejectedCount, countRes, buildingsRes] = await Promise.all([
-→ 2642     __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-    at <unknown> (src/app/actions/government.ts:3135:25)
-    at async getSurveyorSubmissions (src/app/actions/government.ts:3134:7)
-  3133 |     const [totalSubmissions, pendingCount, approvedCount, rejectedCount, countRes, buildingsRes] =
-  3134 |       await Promise.all([
-> 3135 |         prisma.building.count({ where: surveyorFilter }),
-       |                         ^
-  3136 |         prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "PENDING_REVIEW" } }),
-  3137 |         prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "APPROVED" } }),
-  3138 |         prisma.building.count({ where: { ...surveyorFilter, approvalStatus: "REJECTED" } }), {
-  code: 'ECONNREFUSED',
-  meta: { modelName: 'Building' },
-  clientVersion: '7.10.0'
-}
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2645:149
-
-  2642 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count({
-  2643     where: surveyorFilter
-  2644 }),
-→ 2645 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2651:149
-
-  2648         approvalStatus: "PENDING_REVIEW"
-  2649     }
-  2650 }),
-→ 2651 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2657:149
-
-  2654         approvalStatus: "APPROVED"
-  2655     }
-  2656 }),
-→ 2657 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2663:149
-
-  2660         approvalStatus: "REJECTED"
-  2661     }
-  2662 }),
-→ 2663 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count(
-
-prisma:error
-Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany()` invocation in
-/app/.next/dev/server/chunks/ssr/_1t-v7pt._.js:2666:149
-
-  2663 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.count({
-  2664     where
-  2665 }),
-→ 2666 __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].building.findMany(
-
- POST /government/surveyor-submissions 200 in 52ms (next.js: 4ms, proxy.ts: 8ms, application-code: 40ms)
-  └─ ƒ getSurveyorSubmissions({"filterStatus":"ALL","limit":10,"page":1,"...":"3 items not stringified"}) in 18ms src/actions/government.ts
+ POST / 200 in 33ms (next.js: 4ms, proxy.ts: 8ms, application-code: 20ms)
+  └─ ƒ getPublicVerifiedBuildings() in 9ms src/actions/getPublicBuildings.ts
+[browser] Image "gate" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "office" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "atm" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "lift_gate" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "canoe" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)
+[browser] Image "badminton" could not be loaded. Please make sure you have added the image before it is needed with map.addImage(), resolved it with map.setMissingStyleImageResolver(), or included it in a "sprite" property in your style. (src/components/VolumetricViewer.tsx:121:5)

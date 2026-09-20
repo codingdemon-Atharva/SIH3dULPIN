@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getPublicNotifications } from "@/src/app/actions/getPublicNotifications";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 interface AppHeaderProps {
   roleMode: "PUBLIC_VIEWER" | "SURVEYOR" | "UPLOADER";
@@ -19,7 +20,7 @@ export function AppHeader({
   onToggleSidebar,
   isSidebarOpen = true,
 }: AppHeaderProps) {
-  const [lang, setLang] = useState<"EN" | "HI">("EN");
+  const { lang, toggleLang, t } = useLanguage();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -50,11 +51,12 @@ export function AppHeader({
     <header className="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b border-[#e2dad0] bg-[#fdfbf7] px-6 sm:px-8 text-[#162a21] shadow-sm relative">
       {/* LEFT SECTION: Ministry of Rural Development Logo */}
       <div className="flex items-center gap-4 min-w-[220px] z-10">
-        {!isPublicViewer && onToggleSidebar && (
+        {onToggleSidebar && (
           <button
             type="button"
             onClick={onToggleSidebar}
-            aria-label="Toggle Sidebar"
+            aria-label={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+            title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-sm"
           >
             <svg
@@ -88,15 +90,12 @@ export function AppHeader({
 
       {/* CENTER SECTION: BhuVista Logo (Visually centered relative to full width) */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center text-center pointer-events-auto">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center">
           <img
             src="/bhuvista-logo.png"
-            alt="BhuVista Logo"
-            className="h-11 w-auto object-contain"
+            alt="BhuVista"
+            className="h-14 w-auto object-contain max-h-[64px]"
           />
-          <span className="text-3xl font-black tracking-tight text-[#162a21] font-sans">
-            BhuVista
-          </span>
         </div>
       </div>
 
@@ -144,7 +143,7 @@ export function AppHeader({
         {/* Language Selector */}
         <button
           type="button"
-          onClick={() => setLang(lang === "EN" ? "HI" : "EN")}
+          onClick={toggleLang}
           className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e2dad0] bg-white px-3 text-xs font-semibold text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-sm"
         >
           <span>🌐</span>
@@ -182,7 +181,7 @@ export function AppHeader({
             <div className="absolute right-0 mt-2 w-72 rounded-xl border border-[#e2dad0] bg-white p-3.5 text-xs text-[#162a21] shadow-xl z-50">
               <div className="flex items-center justify-between border-b border-[#e2dad0] pb-2">
                 <p className="font-bold text-[#2d6a4f]">
-                  Public Notifications
+                  {t.publicNotifications}
                 </p>
                 {unreadCount > 0 && (
                   <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-bold text-red-800">
@@ -193,13 +192,13 @@ export function AppHeader({
 
               {isPublicViewer ? (
                 <div className="py-3 text-[#3d5a4c] space-y-2 text-center">
-                  <p className="text-xs">No unread public notifications.</p>
+                  <p className="text-xs">{t.noUnreadPublicNotifications}</p>
                   <Link
                     href="/notifications"
                     onClick={() => setShowNotifications(false)}
                     className="inline-block text-[11px] font-bold text-[#2d6a4f] hover:underline"
                   >
-                    View All Notifications →
+                    {t.viewAllNotifications}
                   </Link>
                 </div>
               ) : (
@@ -212,7 +211,7 @@ export function AppHeader({
                       onClick={() => setShowNotifications(false)}
                       className="inline-block text-[11px] font-bold text-[#2d6a4f] hover:underline"
                     >
-                      Open Public Notices →
+                      {t.viewAllNotifications}
                     </Link>
                   </div>
                 </div>
@@ -232,14 +231,14 @@ export function AppHeader({
               {userRole === "SURVEYOR" ? "SV" : "PV"}
             </div>
             <span className="font-semibold text-[#162a21]">
-              {userRole === "SURVEYOR" ? "Surveyor" : "Public Viewer"}
+              {userRole === "SURVEYOR" ? t.surveyor : t.publicViewer}
             </span>
           </button>
 
           {showProfile && (
             <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[#e2dad0] bg-white p-3 text-xs text-[#162a21] shadow-xl z-50">
               <div className="border-b border-[#e2dad0] pb-2">
-                <p className="font-bold text-[#162a21]">BhuVista Session</p>
+                <p className="font-bold text-[#162a21]">{t.bhuVistaSession}</p>
                 <p className="text-[10px] text-[#3d5a4c]">
                   Role: {userRole || "PUBLIC_VIEWER"}
                 </p>
@@ -251,14 +250,14 @@ export function AppHeader({
                     onClick={() => setShowProfile(false)}
                     className="block w-full text-left rounded-lg px-2 py-1.5 text-[#2d6a4f] font-bold hover:bg-[#f3efe6]"
                   >
-                    Open Internal Portal →
+                    {t.openInternalPortal}
                   </Link>
                 )}
                 <a
                   href="/login"
                   className="block rounded-lg px-2 py-1.5 text-[#3d5a4c] hover:bg-[#f3efe6] hover:text-[#162a21]"
                 >
-                  Sign In / Switch Role
+                  {t.signInSwitchRole}
                 </a>
               </div>
             </div>

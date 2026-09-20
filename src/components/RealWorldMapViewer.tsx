@@ -16,6 +16,7 @@ import type {
   ParsedBuilding,
   Property2D,
 } from "@/src/lib/parser/types";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 setWorkerUrl(
   "/maplibre/maplibre-gl-worker.mjs"
@@ -528,6 +529,8 @@ export default function RealWorldMapViewer({
   onPropertyNavigate,
   onBuildingSelect,
 }: RealWorldMapViewerProps) {
+  const { t } = useLanguage();
+
   const containerRef =
     useRef<HTMLDivElement | null>(
       null
@@ -535,6 +538,21 @@ export default function RealWorldMapViewer({
 
   const mapRef =
     useRef<Map | null>(
+      null
+    );
+
+  const minimapContainerRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+  const minimapRef =
+    useRef<Map | null>(
+      null
+    );
+
+  const minimapCenterMarkerRef =
+    useRef<Marker | null>(
       null
     );
 
@@ -1133,7 +1151,94 @@ export default function RealWorldMapViewer({
 
   /**
    * ----------------------------------------------------------
-   * INITIALIZE MAP
+   * DEFAULT CITY OVERVIEW CENTER (STATIC MINIMAP)
+   * ----------------------------------------------------------
+   */
+  const defaultCityCenter = useMemo<[number, number]>(() => {
+    if (mapBuildings.length > 0 && mapBuildings[0].georeference) {
+      return [
+        mapBuildings[0].georeference.longitude,
+        mapBuildings[0].georeference.latitude,
+      ];
+    }
+    return [73.8567, 18.5204]; // Pune City Overview
+  }, [mapBuildings]);
+
+  /**
+   * ----------------------------------------------------------
+   * INITIALIZE STATIC MINIMAP
+   * ----------------------------------------------------------
+   */
+  useEffect(() => {
+    if (!minimapContainerRef.current) return;
+    if (minimapRef.current) return;
+
+    const miniMap = new Map({
+      container: minimapContainerRef.current,
+      style: "https://tiles.openfreemap.org/styles/bright",
+      center: defaultCityCenter,
+      zoom: 11,
+      pitch: 0,
+      bearing: 0,
+      interactive: false,
+      attributionControl: false,
+    });
+
+    minimapRef.current = miniMap;
+
+    // Viewport location indicator marker on static overview
+    const indicatorEl = document.createElement("div");
+    indicatorEl.style.width = "12px";
+    indicatorEl.style.height = "12px";
+    indicatorEl.style.borderRadius = "9999px";
+    indicatorEl.style.backgroundColor = "#2d6a4f";
+    indicatorEl.style.border = "2px solid #ffffff";
+    indicatorEl.style.boxShadow = "0 0 10px rgba(45,106,79,0.8)";
+
+    const marker = new Marker({
+      element: indicatorEl,
+      anchor: "center",
+    })
+      .setLngLat(defaultCityCenter)
+      .addTo(miniMap);
+
+    minimapCenterMarkerRef.current = marker;
+
+    miniMap.on("load", () => {
+      miniMap.resize();
+    });
+
+    return () => {
+      marker.remove();
+      miniMap.remove();
+      minimapRef.current = null;
+      minimapCenterMarkerRef.current = null;
+    };
+  }, [defaultCityCenter]);
+
+  /**
+   * Update main map center indicator on static minimap without moving minimap viewport
+   */
+  useEffect(() => {
+    const mainMap = mapRef.current;
+    if (!mainMap || !mapReady) return;
+
+    const handleMainMapMove = () => {
+      if (minimapCenterMarkerRef.current) {
+        const center = mainMap.getCenter();
+        minimapCenterMarkerRef.current.setLngLat([center.lng, center.lat]);
+      }
+    };
+
+    mainMap.on("move", handleMainMapMove);
+    return () => {
+      mainMap.off("move", handleMainMapMove);
+    };
+  }, [mapReady]);
+
+  /**
+   * ----------------------------------------------------------
+   * INITIALIZE MAIN MAP
    * ----------------------------------------------------------
    *
    * IMPORTANT:
@@ -2234,7 +2339,7 @@ export default function RealWorldMapViewer({
           </div>
           <input
             type="text"
-            placeholder="Search by ULPIN, Owner Name, Survey Number..."
+            placeholder={t.mapSearchPlaceholder}
             value={searchQuery}
             onFocus={() => setIsSearchDropdownOpen(true)}
             onChange={(e) => {
@@ -2264,7 +2369,7 @@ export default function RealWorldMapViewer({
             {searchResults.length > 0 ? (
               <div className="space-y-1">
                 <div className="px-3 py-1.5 text-[11px] font-bold text-[#2d6a4f] uppercase tracking-wider border-b border-[#e2dad0]/60 flex items-center justify-between">
-                  <span>Matching Public Records</span>
+                  <span>{t.matchingPublicRecords}</span>
                   <span className="text-[10px] bg-[#2d6a4f]/10 text-[#2d6a4f] px-2 py-0.5 rounded-full font-extrabold">
                     {searchResults.length}
                   </span>
@@ -2307,7 +2412,7 @@ export default function RealWorldMapViewer({
               </div>
             ) : (
               <div className="p-4 text-center text-xs font-semibold text-[#6b887a] bg-[#f8f5ee] rounded-xl border border-[#e2dad0]">
-                No matching public records found.
+                {t.noMatchingRecords}
               </div>
             )}
           </div>
@@ -2323,12 +2428,12 @@ export default function RealWorldMapViewer({
         </div>
         <div className="flex flex-col">
           <span className="font-bold text-[#162a21] text-xs">
-            {building?.name || (multiBuildingMode && mapBuildings.length > 0 ? "National Cadastral Zone" : "BhuVista Public Viewer")}
+            {building?.name || (multiBuildingMode && mapBuildings.length > 0 ? t.nationalCadastralZone : t.bhuVistaPublicViewer)}
           </span>
           <span className="text-[10px] font-semibold text-[#3d5a4c]">
             {building?.georeference
               ? `${building.georeference.latitude.toFixed(4)}° N, ${building.georeference.longitude.toFixed(4)}° E`
-              : "State Land Registry • Verified GIS"}
+              : t.stateLandRegistry}
           </span>
         </div>
       </div>
@@ -2338,14 +2443,14 @@ export default function RealWorldMapViewer({
       {/* ---------------------------------------------------- */}
       <div className="absolute bottom-8 left-6 z-30 w-[360px] max-w-[calc(100vw-3rem)] rounded-2xl border border-[#e2dad0] bg-[#fdfbf7]/95 p-5 text-[#162a21] shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between border-b border-[#e2dad0] pb-3 mb-3">
-          <h4 className="text-sm font-bold text-[#162a21]">Property Details</h4>
+          <h4 className="text-sm font-bold text-[#162a21]">{t.propertyDetails}</h4>
           {(selectedUnitDetails || selectedBuildingDetails) && (
             <button
               type="button"
               onClick={handleClearSelection}
               className="text-xs font-semibold text-[#2d6a4f] hover:text-[#1b4332] bg-[#2d6a4f]/10 px-2 py-0.5 rounded-lg transition"
             >
-              ✕ Clear Selection
+              {t.clearSelection}
             </button>
           )}
         </div>
@@ -2360,30 +2465,30 @@ export default function RealWorldMapViewer({
                 </div>
               )}
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Survey / Unit #</span>
+                <span className="text-[#6b887a] font-medium">{t.unitNumberLabel}</span>
                 <span className="font-bold text-[#162a21]">{selectedUnitDetails.unitNumber}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Floor Level</span>
-                <span className="font-bold text-[#162a21]">Floor {selectedUnitDetails.floorNumber}</span>
+                <span className="text-[#6b887a] font-medium">{t.floorLevelLabel}</span>
+                <span className="font-bold text-[#162a21]">{selectedUnitDetails.floorNumber}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Land Use</span>
+                <span className="text-[#6b887a] font-medium">{t.landUseLabel}</span>
                 <span className="font-bold text-[#2d6a4f]">{selectedUnitDetails.spaceType || "Residential"}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Area</span>
+                <span className="text-[#6b887a] font-medium">{t.areaLabel}</span>
                 <span className="font-bold text-[#162a21]">{selectedUnitDetails.area ? `${selectedUnitDetails.area} m²` : "N/A"}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Parent Structure</span>
+                <span className="text-[#6b887a] font-medium">{t.parentStructureLabel}</span>
                 <span className="font-bold text-[#162a21] truncate max-w-[180px]">
                   {selectedBuildingDetails?.name || building?.name || "Cadastral Structure"}
                 </span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Verification</span>
-                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+                <span className="text-[#6b887a] font-medium">{t.verificationLabel}</span>
+                <span className="font-bold text-[#2d6a4f]">{t.approvedCadastre}</span>
               </div>
 
               <button
@@ -2391,22 +2496,22 @@ export default function RealWorldMapViewer({
                 onClick={() => onPropertyNavigate?.(selectedUnitDetails)}
                 className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
               >
-                View Full Details
+                {t.viewFullDetails}
               </button>
             </>
           ) : selectedBuildingDetails ? (
             <>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Structure Name</span>
+                <span className="text-[#6b887a] font-medium">{t.parentStructureLabel}</span>
                 <span className="font-bold text-[#162a21] truncate max-w-[180px]">{selectedBuildingDetails.name}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Floors</span>
+                <span className="text-[#6b887a] font-medium">{t.floorLevelLabel}</span>
                 <span className="font-bold text-[#162a21]">{selectedBuildingDetails.floors?.length || 0} Levels</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Status</span>
-                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+                <span className="text-[#6b887a] font-medium">{t.verificationLabel}</span>
+                <span className="font-bold text-[#2d6a4f]">{t.approvedCadastre}</span>
               </div>
 
               <button
@@ -2414,22 +2519,22 @@ export default function RealWorldMapViewer({
                 onClick={() => onBuildingSelect?.(selectedBuildingDetails)}
                 className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
               >
-                View Full Details
+                {t.viewFullDetails}
               </button>
             </>
           ) : building ? (
             <>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Structure Name</span>
+                <span className="text-[#6b887a] font-medium">{t.parentStructureLabel}</span>
                 <span className="font-bold text-[#162a21] truncate max-w-[180px]">{building.name}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Floors</span>
+                <span className="text-[#6b887a] font-medium">{t.floorLevelLabel}</span>
                 <span className="font-bold text-[#162a21]">{building.floors?.length || 0} Levels</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Status</span>
-                <span className="font-bold text-[#2d6a4f]">VERIFIED CADASTRE</span>
+                <span className="text-[#6b887a] font-medium">{t.verificationLabel}</span>
+                <span className="font-bold text-[#2d6a4f]">{t.approvedCadastre}</span>
               </div>
 
               <button
@@ -2437,21 +2542,21 @@ export default function RealWorldMapViewer({
                 onClick={() => onBuildingSelect?.(building)}
                 className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
               >
-                View Full Details
+                {t.viewFullDetails}
               </button>
             </>
           ) : (
             <>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Registry Zone</span>
-                <span className="font-bold text-[#162a21]">National Cadastre</span>
+                <span className="text-[#6b887a] font-medium">{t.registryZone}</span>
+                <span className="font-bold text-[#162a21]">{t.nationalCadastralZone}</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">Active Parcels</span>
+                <span className="text-[#6b887a] font-medium">{t.activeParcels}</span>
                 <span className="font-bold text-[#162a21]">{mapBuildings.length} Registered</span>
               </div>
               <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                <span className="text-[#6b887a] font-medium">GIS System</span>
+                <span className="text-[#6b887a] font-medium">{t.gisSystem}</span>
                 <span className="font-bold text-[#2d6a4f]">MapLibre 3D</span>
               </div>
 
@@ -2459,7 +2564,7 @@ export default function RealWorldMapViewer({
                 type="button"
                 className="mt-4 w-full rounded-xl bg-[#2d6a4f] py-2.5 text-center text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-md cursor-pointer"
               >
-                View Full Details
+                {t.viewFullDetails}
               </button>
             </>
           )}
@@ -2563,19 +2668,16 @@ export default function RealWorldMapViewer({
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* FLOATING MINIMAP (BOTTOM-RIGHT) */}
+      {/* FLOATING STATIC CITY OVERVIEW MINIMAP (BOTTOM-RIGHT) */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute bottom-8 right-6 z-20 hidden md:block">
-        <div className="w-44 h-32 rounded-2xl border-2 border-white bg-[#f8f5ee] shadow-xl overflow-hidden relative border-[#e2dad0]">
-          <div className="absolute inset-0 bg-[#e5e0d8] opacity-80" />
-          <div className="absolute inset-2 rounded-xl border border-[#2d6a4f]/20 bg-[#fdfbf7]/60 flex items-center justify-center">
-            <div className="flex flex-col items-center justify-center text-center p-1">
-              <span className="text-[10px] font-bold text-[#2d6a4f]">OVERVIEW</span>
-              <span className="text-[9px] text-[#6b887a]">{basemapMode === "satellite" ? "Satellite View" : "Street View"}</span>
-            </div>
-          </div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border border-[#2d6a4f] rounded-full flex items-center justify-center">
-            <div className="w-1 h-1 bg-[#2d6a4f] rounded-full" />
+      <div className="absolute bottom-8 right-6 z-20 hidden md:block pointer-events-none">
+        <div className="w-52 h-36 rounded-2xl border-2 border-white bg-[#f8f5ee] shadow-2xl overflow-hidden relative border-[#e2dad0] pointer-events-auto">
+          {/* REAL MAPLIBRE STATIC MINIMAP CANVAS */}
+          <div ref={minimapContainerRef} className="w-full h-full pointer-events-none" />
+
+          {/* CITY OVERVIEW LABEL BADGE */}
+          <div className="absolute top-2 left-2 z-10 rounded-md bg-[#fdfbf7]/90 px-2 py-0.5 text-[9px] font-extrabold text-[#2d6a4f] shadow-xs border border-[#e2dad0] pointer-events-none">
+            CITY OVERVIEW
           </div>
         </div>
       </div>
@@ -2586,7 +2688,7 @@ export default function RealWorldMapViewer({
       {mapBuildings.length === 0 && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/95 px-5 py-2.5 text-xs font-semibold text-[#162a21] shadow-lg backdrop-blur-md flex items-center gap-2 text-center">
           <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-          <span>No public cadastral parcels are available for this area.</span>
+          <span>{t.noPublicParcelsNotice}</span>
         </div>
       )}
 
