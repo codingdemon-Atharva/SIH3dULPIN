@@ -125,6 +125,19 @@ export async function requireRole(allowedRoles: UserRoleType[]) {
   return auth;
 }
 
+export async function getSurveyorSession() {
+  const user = await getSessionUser();
+  if (!user || user.role !== "SURVEYOR") return null;
+  return user;
+}
+
+export async function loginSurveyor(email: string, password: string) {
+  if (!email || !password) {
+    return { success: false, error: "Email and password are required." };
+  }
+  return { success: true, message: "Login successful." };
+}
+
 export async function requireGovernmentUser() {
   const auth = await requireAuthenticatedUser();
   if (!auth.authorized) {

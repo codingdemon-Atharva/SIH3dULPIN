@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/src/components/PageShell";
 import { getPublicRegistryRecords } from "@/src/app/actions/getPublicBuildings";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 interface RegistryRecord {
   id: string;
@@ -27,6 +28,7 @@ type SortOrder = "asc" | "desc";
 
 export default function ULPINRegistryPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [records, setRecords] = useState<RegistryRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -215,17 +217,17 @@ export default function ULPINRegistryPage() {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="rounded bg-[#2d6a4f]/10 px-2.5 py-0.5 text-[10px] font-extrabold text-[#2d6a4f] uppercase tracking-wider">
-                NATIONAL CADASTRAL DATABASE
+                {t.nationalCadastralDatabase}
               </span>
-              <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                PUBLIC REGISTRY
+              <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
+                {t.publicRegistry}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-[#162a21] tracking-tight">
-              ULPIN Registry
+              {t.ulpinRegistryTitle}
             </h1>
             <p className="text-xs font-medium text-[#6b887a] mt-1">
-              Search and explore publicly verified ULPIN-linked land records.
+              {t.ulpinRegistryDesc}
             </p>
           </div>
 
@@ -234,7 +236,7 @@ export default function ULPINRegistryPage() {
               href="/"
               className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e2dad0] px-4 py-2.5 text-xs font-bold text-[#2d6a4f] hover:bg-[#f3efe6] transition shadow-sm"
             >
-              ← Back to Cadastral Map
+              {t.backToCadastralMap}
             </Link>
           </div>
         </div>
@@ -290,7 +292,7 @@ export default function ULPINRegistryPage() {
                 onChange={(e) => handleSpaceTypeChange(e.target.value)}
                 className="w-full rounded-xl border border-[#e2dad0] bg-white px-3 py-2.5 text-xs font-bold text-[#162a21] outline-none focus:border-[#2d6a4f] focus:ring-2 focus:ring-[#2d6a4f]/20 cursor-pointer"
               >
-                <option value="ALL">All Land Use Types</option>
+                <option value="ALL">{t.allLandUseTypes}</option>
                 {spaceTypes.map((type) => (
                   <option key={type} value={type}>
                     {type}
@@ -310,11 +312,11 @@ export default function ULPINRegistryPage() {
                 onChange={(e) => handleSortChange(e.target.value as SortField)}
                 className="w-full rounded-xl border border-[#e2dad0] bg-white px-3 py-2.5 text-xs font-bold text-[#162a21] outline-none focus:border-[#2d6a4f] focus:ring-2 focus:ring-[#2d6a4f]/20 cursor-pointer"
               >
-                <option value="ulpin">Sort by ULPIN</option>
-                <option value="unitNumber">Sort by Survey Number</option>
-                <option value="area">Sort by Area</option>
-                <option value="spaceType">Sort by Land Use</option>
-                <option value="buildingName">Sort by Structure Name</option>
+                <option value="ulpin">{t.sortByUlpin}</option>
+                <option value="unitNumber">{t.sortBySurveyNum}</option>
+                <option value="area">{t.sortByArea}</option>
+                <option value="spaceType">{t.sortByLandUse}</option>
+                <option value="buildingName">{t.sortByStructure}</option>
               </select>
               <button
                 type="button"
@@ -383,10 +385,10 @@ export default function ULPINRegistryPage() {
               📋
             </div>
             <h3 className="text-lg font-extrabold text-[#162a21]">
-              No Public ULPIN Records Available
+              {t.noPublicRecordsInDb}
             </h3>
             <p className="text-xs text-[#6b887a] max-w-md mx-auto">
-              No publicly verified ULPIN records are currently available in the national cadastre database.
+              {t.noPublicRecordsDesc}
             </p>
           </div>
         )}
@@ -398,10 +400,10 @@ export default function ULPINRegistryPage() {
               🔍
             </div>
             <h3 className="text-lg font-extrabold text-[#162a21]">
-              No Matching Public Records Found
+              {t.noMatchingRecords}
             </h3>
             <p className="text-xs text-[#6b887a] max-w-md mx-auto">
-              No matching public ULPIN records found for your search criteria.
+              {t.noDownloadDataDesc}
             </p>
             <div className="pt-2">
               <button
@@ -471,7 +473,7 @@ export default function ULPINRegistryPage() {
                             </span>
                           ) : (
                             <span className="text-[#6b887a] italic font-sans font-medium text-[11px]">
-                              Pending Assignment
+                              {t.pendingAssignment}
                             </span>
                           )}
                         </td>
@@ -504,7 +506,7 @@ export default function ULPINRegistryPage() {
                         {/* STATUS BADGE */}
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                            ✓ APPROVED CADASTRE
+                            {t.approvedCadastre}
                           </span>
                         </td>
 
@@ -515,7 +517,7 @@ export default function ULPINRegistryPage() {
                               href={`/properties/${record.id}`}
                               className="rounded-lg bg-white border border-[#e2dad0] px-2.5 py-1 text-[11px] font-bold text-[#2d6a4f] hover:bg-[#f3efe6] transition shadow-xs"
                             >
-                              View Details
+                              {t.viewDetails}
                             </Link>
 
                             <button
@@ -523,7 +525,7 @@ export default function ULPINRegistryPage() {
                               onClick={() => handleViewOnMap(record)}
                               className="rounded-lg bg-[#2d6a4f] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#1b4332] transition shadow-xs cursor-pointer"
                             >
-                              View on Map
+                              {t.viewOnMap}
                             </button>
                           </div>
                         </td>

@@ -2,11 +2,13 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 interface SidebarProps {
   isOpen: boolean;
   activeSection?: string;
   onSelectSection?: (sectionId: string) => void;
+  onToggleSidebar?: () => void;
   roleMode: "PUBLIC_VIEWER" | "SURVEYOR" | "UPLOADER";
 }
 
@@ -26,6 +28,7 @@ export function Sidebar({
   isOpen,
   activeSection = "dashboard",
   onSelectSection,
+  onToggleSidebar,
   roleMode,
 }: SidebarProps) {
   const router = useRouter();
@@ -55,13 +58,15 @@ export function Sidebar({
     }
   };
 
+  const { t } = useLanguage();
+
   const navGroups: NavGroup[] = [
     {
-      title: "HOME",
+      title: t.navHomeGroup,
       items: [
         {
           id: "home",
-          label: "Home",
+          label: t.navHome,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -71,11 +76,11 @@ export function Sidebar({
       ],
     },
     {
-      title: "LAND",
+      title: t.navLandGroup,
       items: [
         {
           id: "property-search",
-          label: "Property Search",
+          label: t.navPropertySearch,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -84,7 +89,7 @@ export function Sidebar({
         },
         {
           id: "cadastral-map",
-          label: "Cadastral Map",
+          label: t.navCadastralMap,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -93,7 +98,7 @@ export function Sidebar({
         },
         {
           id: "3d-property-map",
-          label: "3D Property Map",
+          label: t.nav3dPropertyMap,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -103,7 +108,7 @@ export function Sidebar({
         },
         {
           id: "ulpin-registry",
-          label: "ULPIN Registry",
+          label: t.navUlpinRegistry,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -112,7 +117,7 @@ export function Sidebar({
         },
         {
           id: "land-records",
-          label: "Land Records",
+          label: t.navLandRecords,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
@@ -122,11 +127,11 @@ export function Sidebar({
       ],
     },
     {
-      title: "TOOLS",
+      title: t.navToolsGroup,
       items: [
         {
           id: "downloads",
-          label: "Downloads",
+          label: t.navDownloads,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -135,7 +140,7 @@ export function Sidebar({
         },
         {
           id: "notifications",
-          label: "Notifications",
+          label: t.navNotifications,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -145,11 +150,11 @@ export function Sidebar({
       ],
     },
     {
-      title: "OTHER",
+      title: t.navOtherGroup,
       items: [
         {
           id: "help-support",
-          label: "Help & Support",
+          label: t.navHelpSupport,
           icon: (
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -168,25 +173,41 @@ export function Sidebar({
         isOpen ? "w-[260px]" : "w-16"
       }`}
     >
-      {/* Active Role Indicator (Only in internal/surveyor mode) */}
-      {!isPublicViewer && (
-        <div className="border-b border-[#e2dad0] p-3 bg-[#f8f5ee]">
-          {isOpen ? (
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#3d5a4c]">
-                Active Portal
-              </span>
-              <span className="rounded bg-[#2d6a4f] px-2 py-0.5 text-[9px] font-bold text-white shadow-sm">
-                {roleMode}
-              </span>
-            </div>
-          ) : (
-            <div className="flex justify-center text-[10px] font-bold text-[#2d6a4f]">
-              {roleMode.charAt(0)}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Sidebar Header & Toggle Row */}
+      <div className="border-b border-[#e2dad0] p-2.5 bg-[#f8f5ee] flex items-center justify-between">
+        {isOpen ? (
+          <div className="flex items-center justify-between w-full px-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#3d5a4c]">
+              {!isPublicViewer ? `Active Portal: ${roleMode}` : "Navigation"}
+            </span>
+            {onToggleSidebar && (
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                title="Collapse Sidebar"
+                aria-label="Collapse Sidebar"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-xs"
+              >
+                ◀
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center w-full">
+            {onToggleSidebar && (
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                title="Expand Sidebar"
+                aria-label="Expand Sidebar"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-xs"
+              >
+                ▶
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Navigation Groups */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
@@ -241,10 +262,10 @@ export function Sidebar({
         <div className="border-t border-[#e2dad0] p-4 bg-[#f8f5ee] text-[#2d6a4f]">
           <div className="flex flex-col gap-0.5 text-center">
             <span className="text-xs font-extrabold tracking-tight text-[#162a21]">
-              Transparent Land Records
+              {t.taglineTitle}
             </span>
             <span className="text-[10px] font-semibold text-[#3d5a4c]">
-              Stronger Rural India
+              {t.taglineSub}
             </span>
           </div>
         </div>

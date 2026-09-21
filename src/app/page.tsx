@@ -21,6 +21,7 @@ import SurveyorApprovalPanel, {
 
 import { PageShell } from "@/src/components/PageShell";
 import { Badge, Button, Card } from "@/src/components/ui";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 // Database Server Actions
 import {
@@ -57,6 +58,7 @@ type UserRole =
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   const [roleMode, setRoleMode] =
     useState<RoleMode>("PUBLIC_VIEWER");
@@ -822,7 +824,7 @@ function DashboardContent() {
                   {loadingDb && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 rounded-full border border-[#e2dad0] bg-[#fdfbf7]/90 px-4 py-1.5 text-xs font-semibold text-[#2d6a4f] shadow-md backdrop-blur-md flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-[#2d6a4f] animate-pulse" />
-                      Loading BhuVista cadastral registry...
+                      {t.loadingRegistry}
                     </div>
                   )}
                   {mapLocationNotice && (
@@ -841,7 +843,7 @@ function DashboardContent() {
               ) : (
                 <div id="selected-building-view" className="flex flex-col gap-6 p-6">
                   <Button variant="outline" size="sm" onClick={handleBackToMap} className="self-start">
-                    ← Back to National Map
+                    {t.backToNationalMap}
                   </Button>
 
                   <Card variant="dark">
@@ -857,7 +859,7 @@ function DashboardContent() {
                         )}
                       </div>
                       <Badge variant="success" size="md">
-                        ✓ VERIFIED CADASTRAL RECORD
+                        {t.verifiedCadastralRecord}
                       </Badge>
                     </div>
                   </Card>
@@ -868,7 +870,7 @@ function DashboardContent() {
                   />
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card variant="dark" title="3D Volumetric Property Model">
+                    <Card variant="dark" title={t.threeDVolumetricModel}>
                       <div className="h-[460px] rounded-xl overflow-hidden bg-[#060b09] border border-[#1f3a2f]">
                         <VolumetricViewer
                           building={building}
@@ -878,7 +880,7 @@ function DashboardContent() {
                       </div>
                     </Card>
 
-                    <Card variant="dark" title="Vertical Cadastral Graph">
+                    <Card variant="dark" title={t.verticalCadastralGraph}>
                       <div className="h-[460px] rounded-xl overflow-auto bg-[#060b09] border border-[#1f3a2f]">
                         <CadastralGraph
                           building={building}
@@ -889,7 +891,7 @@ function DashboardContent() {
                     </Card>
                   </div>
 
-                  <Card variant="dark" title="Real-World GIS Map">
+                  <Card variant="dark" title={t.realWorldGisMap}>
                     <div className="h-[600px] w-full rounded-xl overflow-hidden border border-[#1f3a2f]">
                       <RealWorldMapViewer
                         key={building.id}

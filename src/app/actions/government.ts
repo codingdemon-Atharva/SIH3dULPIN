@@ -1398,6 +1398,326 @@ export interface GovernmentValidationListResult {
   totalPages: number;
 }
 
+// ==========================================
+// GOVERNMENT NOTIFICATIONS SERVICE
+// ==========================================
+
+export interface GovernmentNotification {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  category: "Verification" | "Submissions" | "Validation" | "ULPIN Registry" | "System";
+  isRead: boolean;
+  targetUrl: string;
+  referenceId: string;
+}
+
+// ==========================================
+// GOVERNMENT DOWNLOADS SERVICE
+// ==========================================
+
+export interface GovernmentDownloadableRecord {
+  id: string;
+  buildingId: string;
+  buildingName: string;
+  unitNumber?: string;
+  ulpin?: string | null;
+  approvalStatus: string;
+  spaceType: string;
+  location: string;
+  totalFloors: number;
+  unitsCount: number;
+  areaSqM: number;
+  createdAt: string;
+  parsedBuilding: ParsedBuilding;
+}
+
+export async function getGovernmentDownloadsData() {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      records: [],
+    };
+  }
+
+  try {
+    const buildings = await prisma.building.findMany({
+      include: {
+        floors: {
+          orderBy: { floorNumber: "asc" },
+          include: { units: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const records: GovernmentDownloadableRecord[] = buildings.map((b) => {
+      let totalAreaSqM = 0;
+      let uCount = 0;
+      const spaceTypes = new Set<string>();
+      let firstUlpin: string | null = null;
+
+      for (const f of b.floors) {
+        uCount += f.units.length;
+        for (const u of f.units) {
+          totalAreaSqM += Number(u.area) || 0;
+          if (u.spaceType) spaceTypes.add(u.spaceType);
+          if (u.ulpin && !firstUlpin) firstUlpin = u.ulpin;
+        }
+      }
+
+      // Convert DB building to ParsedBuilding for LandXML & CityGML exporters
+      const parsedBuilding: ParsedBuilding = {
+        id: b.id,
+        name: b.name || "Cadastral Structure",
+        georeference: {
+          latitude: Number(b.latitude) || 18.5204,
+          longitude: Number(b.longitude) || 73.8567,
+        },
+        floors: b.floors.map((f) => ({
+          floorNumber: f.floorNumber,
+          elevation: Number(f.elevation) || 0,
+          height: Number(f.height) || 3.2,
+          units: f.units.map((u) => {
+            let polygon: Array<{ x: number; y: number }> = [];
+            if (typeof u.polygon === "string") {
+              try {
+                polygon = JSON.parse(u.polygon);
+              } catch {
+                polygon = [];
+              }
+            } else if (Array.isArray(u.polygon)) {
+              polygon = u.polygon as any;
+            }
+
+            if (!Array.isArray(polygon) || polygon.length === 0) {
+              const lat = Number(b.latitude) || 18.5204;
+              const lng = Number(b.longitude) || 73.8567;
+              polygon = [
+                { x: lng - 0.0001, y: lat - 0.0001 },
+                { x: lng + 0.0001, y: lat - 0.0001 },
+                { x: lng + 0.0001, y: lat + 0.0001 },
+                { x: lng - 0.0001, y: lat + 0.0001 },
+              ];
+            }
+
+            return {
+              id: u.id,
+              unitNumber: u.unitNumber || "UNIT",
+              floorNumber: f.floorNumber,
+              area: Number(u.area) || 0,
+              polygon,
+              ulpin: u.ulpin || undefined,
+              spaceType: u.spaceType || "RESIDENTIAL",
+            };
+          }),
+        })),
+      };
+
+      const locName = b.name.includes("Shivajinagar")
+        ? "Shivajinagar Cadastre"
+        : b.name.includes("Narhe")
+        ? "Narhe Cadastre"
+        : "Central District";
+
+      return {
+        id: b.id,
+        buildingId: b.id,
+        buildingName: b.name || "Cadastral Structure",
+        ulpin: firstUlpin,
+        approvalStatus: b.approvalStatus,
+        spaceType: Array.from(spaceTypes).join(" / ") || "RESIDENTIAL",
+        location: locName,
+        totalFloors: b.floors.length,
+        unitsCount: uCount,
+        areaSqM: Math.round(totalAreaSqM * 100) / 100,
+        createdAt: b.createdAt.toISOString(),
+        parsedBuilding,
+      };
+    });
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      records,
+    };
+  } catch (error) {
+    console.error("Failed to fetch government download records:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to retrieve downloadable records.",
+      records: [],
+    };
+  }
+}
+
+export async function getGovernmentNotifications() {
+  const auth = await requireGovernmentUser();
+
+  if (!auth.authorized) {
+    return {
+      success: false as const,
+      status: auth.status,
+      error: auth.error,
+      notifications: [],
+      unreadCount: 0,
+    };
+  }
+
+  try {
+    const isSurveyor = auth.user.role === "SURVEYOR";
+    const userId = auth.user.id;
+
+    let buildings: any[] = [];
+    let properties: any[] = [];
+
+    try {
+      const [bRes, pRes] = await Promise.all([
+        prisma.building.findMany({
+          include: {
+            floors: {
+              include: { units: true },
+            },
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 50,
+        }),
+        prisma.property.findMany({
+          include: {
+            floor: {
+              include: { building: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        }),
+      ]);
+      buildings = bRes;
+      properties = pRes;
+    } catch (dbErr) {
+      console.warn("Database query failed for notifications, returning empty list:", dbErr);
+    }
+
+    const notifications: GovernmentNotification[] = [];
+
+    // Derive notifications from Building status changes
+    for (const b of buildings) {
+      // If surveyor role, filter to buildings belonging to this surveyor
+      if (isSurveyor && b.surveyorId && b.surveyorId !== userId) {
+        continue;
+      }
+
+      const bName = b.name || "Cadastral Structure";
+      const createdIso = b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString();
+      const verifiedIso = b.verifiedAt ? new Date(b.verifiedAt).toISOString() : createdIso;
+
+      if (b.approvalStatus === "PENDING_REVIEW") {
+        notifications.push({
+          id: `NOTIF-BLD-PEND-${b.id}`,
+          title: "Cadastral Record Requires Verification",
+          description: `Structure "${bName}" is queued and awaiting government review.`,
+          timestamp: createdIso,
+          category: "Verification",
+          isRead: false,
+          targetUrl: `/government/pending-verification?search=${encodeURIComponent(b.id)}`,
+          referenceId: b.id,
+        });
+      } else if (b.approvalStatus === "APPROVED") {
+        notifications.push({
+          id: `NOTIF-BLD-APP-${b.id}`,
+          title: "Cadastral Verification Approved",
+          description: `Structure "${bName}" was successfully approved and 3D ULPIN identities were issued.`,
+          timestamp: verifiedIso,
+          category: "Submissions",
+          isRead: false,
+          targetUrl: `/government/land-parcels?search=${encodeURIComponent(b.id)}`,
+          referenceId: b.id,
+        });
+      } else if (b.approvalStatus === "REJECTED") {
+        notifications.push({
+          id: `NOTIF-BLD-REJ-${b.id}`,
+          title: "Cadastral Verification Rejected",
+          description: `Submission for "${bName}" was rejected during verification.`,
+          timestamp: verifiedIso,
+          category: "Submissions",
+          isRead: false,
+          targetUrl: `/government/pending-verification?search=${encodeURIComponent(b.id)}`,
+          referenceId: b.id,
+        });
+      }
+    }
+
+    // Derive notifications from Property validation and ULPIN assignments
+    for (const p of properties) {
+      if (isSurveyor && p.floor?.building?.surveyorId && p.floor.building.surveyorId !== userId) {
+        continue;
+      }
+
+      const bName = p.floor?.building?.name || "Structure";
+      const createdIso = p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString();
+
+      const evaluation = validatePropertyRecord(p);
+
+      if (evaluation.overallStatus === "WARNING" || evaluation.overallStatus === "FAIL") {
+        notifications.push({
+          id: `NOTIF-VAL-${p.id}`,
+          title: `Quality Validation ${evaluation.overallStatus}`,
+          description: `Unit ${p.unitNumber} (${bName}) flagged: ${evaluation.primaryIssue}`,
+          timestamp: createdIso,
+          category: "Validation",
+          isRead: false,
+          targetUrl: `/government/validation?search=${encodeURIComponent(p.id)}`,
+          referenceId: p.id,
+        });
+      }
+
+      if (p.ulpin && p.ulpin.trim() !== "") {
+        notifications.push({
+          id: `NOTIF-ULPIN-${p.id}`,
+          title: "3D ULPIN Identity Issued",
+          description: `3D ULPIN "${p.ulpin}" registered for Unit ${p.unitNumber} (${bName}).`,
+          timestamp: createdIso,
+          category: "ULPIN Registry",
+          isRead: false,
+          targetUrl: `/government/ulpin-registry?search=${encodeURIComponent(p.ulpin)}`,
+          referenceId: p.id,
+        });
+      }
+    }
+
+    // Sort notifications by timestamp descending (newest first)
+    notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Limit to top 30
+    const topNotifications = notifications.slice(0, 30);
+    const unreadCount = topNotifications.filter((n) => !n.isRead).length;
+
+    return {
+      success: true as const,
+      status: 200,
+      error: null,
+      notifications: topNotifications,
+      unreadCount,
+    };
+  } catch (error) {
+    console.error("Failed to fetch government notifications:", error);
+    return {
+      success: false as const,
+      status: 500,
+      error: "Failed to retrieve notifications.",
+      notifications: [],
+      unreadCount: 0,
+    };
+  }
+}
+
 export async function getGovernmentValidationList(options: ValidationQueryOptions = {}) {
   const auth = await requireGovernmentUser();
 

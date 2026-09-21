@@ -2,14 +2,18 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/src/context/LanguageContext";
+
 type LoginRole = "VIEWER" | "SURVEYOR";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { lang, setLang } = useLanguage();
 
-  const [loginRole, setLoginRole] = useState<LoginRole>("VIEWER");
+  const [loginRole, setLoginRole] = useState<LoginRole>("SURVEYOR");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +40,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Login failed.");
+        setError(data.error || (lang === "HI" ? "लॉगिन में विफल।" : "Login failed."));
         return;
       }
 
@@ -51,318 +55,436 @@ export default function LoginPage() {
       }
       router.refresh();
     } catch {
-      setError("Unable to connect to the server.");
+      setError(
+        lang === "HI"
+          ? "सर्वर से कनेक्ट करने में असमर्थ।"
+          : "Unable to connect to the server."
+      );
     } finally {
       setLoading(false);
     }
   }
 
+  // UI labels based on language selection
+  const labels =
+    lang === "HI"
+      ? {
+          brandTitle: "भू-विस्टा",
+          brandSubtitle: "3D भूमि बुद्धिमत्ता मंच",
+          brandGov: "ग्रामीण विकास मंत्रालय",
+          welcome: "वापसी पर स्वागत है",
+          subWelcome: "भू-विस्टा प्लेटफॉर्म तक पहुंचने के लिए अपने खाते में साइन इन करें",
+          surveyorTab: "सर्वेक्षक लॉगिन",
+          viewerTab: "सार्वजनिक दर्शक",
+          emailPlaceholder: "ईमेल पता",
+          passwordPlaceholder: "पासवर्ड",
+          rememberMe: "मुझे याद रखें",
+          forgotPassword: "पासवर्ड भूल गए?",
+          loginBtn: "लॉगिन",
+          authenticating: "प्रमाणीकरण हो रहा है...",
+          or: "या",
+          registerBtn: loginRole === "SURVEYOR" ? "नया सर्वेक्षक पंजीकरण" : "दर्शक खाता पंजीकृत करें",
+          secureAccess: "अधिकृत उपयोगकर्ताओं के लिए सुरक्षित पहुंच",
+          govIndia: "भारत सरकार",
+          slogan: "Digital India  |  Transparent Land Records  |  Empowering Citizens",
+        }
+      : {
+          brandTitle: "BhuVista",
+          brandSubtitle: "3D LAND INTELLIGENCE PLATFORM",
+          brandGov: "MINISTRY OF RURAL DEVELOPMENT",
+          welcome: "Welcome Back",
+          subWelcome: "Sign in to your account to access the BhuVista platform",
+          surveyorTab: "Surveyor Login",
+          viewerTab: "Public Viewer",
+          emailPlaceholder: "Email Address",
+          passwordPlaceholder: "Password",
+          rememberMe: "Remember me",
+          forgotPassword: "Forgot password?",
+          loginBtn: "Login",
+          authenticating: "Authenticating...",
+          or: "or",
+          registerBtn: loginRole === "SURVEYOR" ? "New Surveyor Registration" : "Register Viewer Account",
+          secureAccess: "Secure Access for Authorized Users",
+          govIndia: "Government of India",
+          slogan: "Digital India  |  Transparent Land Records  |  Empowering Citizens",
+        };
+
   return (
-    <main className="min-h-screen bg-[#081a12] flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid lg:grid-cols-[1.15fr_0.85fr]">
+    <div className="relative flex min-h-screen w-full flex-col justify-between overflow-x-hidden bg-[#eef5f1] text-[#122e23] selection:bg-[#1b6a4a] selection:text-white font-sans">
+      {/* NEW ATTACHED BACKGROUND IMAGE */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+        <img
+          src="/bhuvista_background.png"
+          alt="BhuVista Background"
+          className="h-full w-full object-cover object-center"
+        />
+      </div>
 
-        {/* LEFT — 3D GIS Visual */}
-        <section className="relative hidden min-h-[720px] overflow-hidden bg-[#0f2d21] lg:block">
-
-          {/* Grid */}
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
-              backgroundSize: "42px 42px",
-            }}
+      {/* TOP HEADER SECTION */}
+      <header className="relative z-20 flex w-full items-start justify-between px-6 pt-5 pb-2 sm:px-10 sm:pt-6">
+        {/* TOP LEFT: Ministry of Rural Development / Govt of India Logo */}
+        <div className="flex items-center">
+          <img
+            src="/mord-logo.png"
+            alt="Ministry of Rural Development - Government of India"
+            className="h-10 sm:h-12 md:h-14 w-auto object-contain"
           />
+        </div>
 
-          {/* Glow */}
-          <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl" />
-          <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
+        {/* TOP CENTER: BhuVista Brand Identity & Wordmark - Horizontally Centered */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center text-center pointer-events-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-[42px] font-extrabold tracking-tight text-[#0d472a] font-serif leading-none">
+            {labels.brandTitle}
+          </h1>
+          <p className="mt-1 text-[11px] sm:text-xs font-bold tracking-[0.2em] text-[#0d472a] uppercase">
+            {labels.brandSubtitle}
+          </p>
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[9px] sm:text-[10px] font-semibold text-[#668878] uppercase tracking-widest">
+            <span className="h-[1px] w-6 sm:w-10 bg-[#bcd4c8]" />
+            <span>{labels.brandGov}</span>
+            <span className="h-[1px] w-6 sm:w-10 bg-[#bcd4c8]" />
+          </div>
+        </div>
 
-          <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
+        {/* TOP RIGHT: Enlarged BhuVista Logo Asset */}
+        <div className="flex items-center justify-end">
+          <img
+            src="/bhuvista-logo-official-new.png"
+            alt="BhuVista Logo"
+            className="h-16 sm:h-20 md:h-24 w-auto object-contain max-w-[200px] sm:max-w-[260px] md:max-w-[300px]"
+          />
+        </div>
+      </header>
 
-            {/* Brand */}
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#2d6a4f] text-sm font-bold text-white shadow-md">
-                  BV
-                </div>
-
-                <div>
-                  <p className="text-xl font-bold tracking-wide text-white">
-                    BhuVista
-                  </p>
-                  <p className="text-[11px] font-semibold tracking-wider text-[#b7e4c7]">
-                    3D LAND INTELLIGENCE PLATFORM
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Building Illustration */}
-            <div className="relative flex flex-1 items-center justify-center">
-
-              <div className="relative mt-8 h-[360px] w-[300px]">
-
-                {/* Ground plane */}
-                <div className="absolute bottom-4 left-1/2 h-20 w-72 -translate-x-1/2 rotate-[-8deg] rounded-xl border border-emerald-400/20 bg-emerald-400/5" />
-
-                {/* Building */}
-                <div className="absolute bottom-16 left-1/2 h-[280px] w-48 -translate-x-1/2 rounded-sm border border-emerald-300/30 bg-[#1b4332]/90 shadow-[0_0_50px_rgba(45,106,79,0.2)]">
-
-                  {/* Floors */}
-                  {[0, 1, 2, 3, 4, 5].map((floor) => (
-                    <div
-                      key={floor}
-                      className="absolute left-0 right-0 border-t border-emerald-400/25"
-                      style={{
-                        bottom: `${floor * 16.66}%`,
-                      }}
-                    >
-                      <div className="absolute -left-12 -top-2 text-[9px] text-emerald-300/80">
-                        F{floor + 1}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Windows */}
-                  <div className="grid h-full grid-cols-3 gap-3 p-5">
-                    {Array.from({ length: 18 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="rounded-sm border border-amber-300/10 bg-amber-300/5"
-                      />
-                    ))}
-                  </div>
-
-                  {/* Vertical parcel line */}
-                  <div className="absolute -right-12 top-0 h-full border-r border-dashed border-emerald-400/40" />
-                </div>
-
-                {/* Elevation marker */}
-                <div className="absolute right-0 top-10 text-[10px] text-emerald-200">
-                  +18.40 m
-                </div>
-
-                {/* Coordinate markers */}
-                <div className="absolute bottom-0 left-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[9px] text-emerald-100 backdrop-blur">
-                  18.4418° N
-                  <br />
-                  73.8317° E
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="max-w-lg">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#c5a059]">
-                Ministry of Rural Development
-              </p>
-
-              <h2 className="text-3xl font-semibold leading-tight text-white xl:text-4xl">
-                Visualize property in
-                <span className="text-[#52b788]"> three dimensions.</span>
-              </h2>
-
-              <p className="mt-3 max-w-md text-sm leading-6 text-[#a8c3b5]">
-                Government-grade cadastral governance platform for visualizing buildings, vertical parcels, floors, and 3D land records.
-              </p>
+      {/* MAIN CONTENT AREA — COMPACT CENTERED LOGIN CARD */}
+      <main className="relative z-20 flex flex-1 items-center justify-center px-4 py-4 sm:py-6">
+        <div className="w-full max-w-[400px] sm:max-w-[420px] rounded-2xl border border-white/80 bg-white/95 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-md transition-all">
+          {/* CARD TOP ROW: Language Selector Dropdown (Top Right inside card) */}
+          <div className="mb-2 flex items-center justify-end">
+            <div className="relative inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
+              <svg
+                className="h-3.5 w-3.5 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                />
+              </svg>
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value as "EN" | "HI")}
+                aria-label="Select Language"
+                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs pr-1"
+              >
+                <option value="EN">English</option>
+                <option value="HI">हिंदी (Hindi)</option>
+              </select>
+              <svg
+                className="h-3 w-3 text-slate-400 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
-        </section>
 
-        {/* RIGHT — Login */}
-        <section className="flex min-h-[720px] items-center justify-center bg-[#fdfbf7] px-6 py-12 sm:px-12">
+          {/* CARD HEADING */}
+          <div className="mb-5 text-left">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 font-sans">
+              {labels.welcome}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500 leading-normal">
+              {labels.subWelcome}
+            </p>
+          </div>
 
-          <div className="w-full max-w-md">
-
-            {/* Mobile branding */}
-            <div className="mb-8 lg:hidden">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1b4332] text-sm font-bold text-white">
-                  BV
-                </div>
-
-                <div>
-                  <p className="font-bold text-[#162a21]">BhuVista</p>
-                  <p className="text-[10px] font-semibold text-[#52b788]">
-                    3D LAND INTELLIGENCE PLATFORM
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Heading */}
-            <div className="mb-8">
-              <p className="mb-1 text-xs font-semibold text-[#1b4332] uppercase tracking-wider">
-                Portal Access
-              </p>
-
-              <h1 className="text-3xl font-bold tracking-tight text-[#162a21]">
-                Sign in to BhuVista
-              </h1>
-
-              <p className="mt-2 text-sm leading-6 text-[#3d5a4c]">
-                Access the national 3D land intelligence & cadastral registry.
-              </p>
-            </div>
-
-            {/* Login Role Toggle */}
-            <div className="mb-6">
-              <p className="mb-2 text-sm font-medium text-slate-700">
-                Sign in as
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#f0ebe1] p-1 border border-[#e2dad0]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginRole("VIEWER");
-                    setError("");
-                  }}
-                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                    loginRole === "VIEWER"
-                      ? "bg-white text-[#1b4332] shadow-sm"
-                      : "text-[#6b887a] hover:text-[#162a21]"
-                  }`}
-                >
-                  Viewer
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginRole("SURVEYOR");
-                    setError("");
-                  }}
-                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                    loginRole === "SURVEYOR"
-                      ? "bg-white text-[#1b4332] shadow-sm"
-                      : "text-[#6b887a] hover:text-[#162a21]"
-                  }`}
-                >
-                  Surveyor
-                </button>
-              </div>
-
-              <p className="mt-2 text-xs text-[#6b887a]">
-                {loginRole === "VIEWER"
-                  ? "For registered public & agency users."
-                  : "For authorized government cadastral surveyors."}
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-
-              {/* Email */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-2 block text-sm font-medium text-[#162a21]"
-                >
-                  Email address
-                </label>
-
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="official@domain.gov.in"
-                  required
-                  autoComplete="email"
-                  className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-3 text-sm text-[#162a21] outline-none transition placeholder:text-slate-400 focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-[#162a21]"
-                  >
-                    Password
-                  </label>
-
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-[#1b4332] hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Enter your password"
-                    required
-                    autoComplete="current-password"
-                    className="w-full rounded-xl border border-[#e2dad0] bg-white px-4 py-3 pr-20 text-sm text-[#162a21] outline-none transition placeholder:text-slate-400 focus:border-[#2d6a4f] focus:ring-4 focus:ring-[#d8f3dc]"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#6b887a] hover:text-[#162a21]"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              {/* Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-[#1b4332] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f2d21] focus:outline-none focus:ring-4 focus:ring-[#d8f3dc] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Authenticating..." : "Sign in"}
-              </button>
-            </form>
-
-            {/* Signup */}
-            <div className="mt-8 text-center text-sm text-[#6b887a]">
-              Don't have an account?{" "}
+          {/* ROLE SELECTOR (Segmented Control matching Reference 2) */}
+          <div className="mb-4">
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/60">
               <button
                 type="button"
-                onClick={() => router.push("/signup")}
-                className="font-semibold text-[#1b4332] hover:underline"
+                onClick={() => {
+                  setLoginRole("SURVEYOR");
+                  setError("");
+                }}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
+                  loginRole === "SURVEYOR"
+                    ? "bg-[#1b6a4a] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
               >
-                Register viewer account
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <span>{labels.surveyorTab}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginRole("VIEWER");
+                  setError("");
+                }}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
+                  loginRole === "VIEWER"
+                    ? "bg-[#1b6a4a] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4"
+                  />
+                </svg>
+                <span>{labels.viewerTab}</span>
               </button>
             </div>
+          </div>
 
-            {/* Surveyor notice */}
-            <div className="mt-6 border-t border-[#e2dad0] pt-6 space-y-3">
-              <div className="rounded-xl bg-[#f0ebe1] px-4 py-3.5 border border-[#e2dad0]">
-                <p className="text-xs font-semibold text-[#162a21]">
-                  Government Surveyor & Official Credentialing
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-[#3d5a4c]">
-                  Authorized surveyor and government officer accounts are issued by department administrators.
-                </p>
+          {/* LOGIN FORM */}
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            {/* EMAIL INPUT */}
+            <div>
+              <div className="relative flex items-center">
+                <div className="absolute left-3 text-slate-400 pointer-events-none">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={labels.emailPlaceholder}
+                  required
+                  autoComplete="email"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1b6a4a] focus:bg-white focus:ring-2 focus:ring-[#1b6a4a]/15"
+                />
               </div>
             </div>
 
-            <p className="mt-6 text-center text-[11px] text-[#6b887a]">
-              BhuVista • Government of India 3D Land Intelligence Platform
-            </p>
+            {/* PASSWORD INPUT */}
+            <div>
+              <div className="relative flex items-center">
+                <div className="absolute left-3 text-slate-400 pointer-events-none">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={labels.passwordPlaceholder}
+                  required
+                  autoComplete="current-password"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-9 pr-10 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1b6a4a] focus:bg-white focus:ring-2 focus:ring-[#1b6a4a]/15"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password visibility"
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  {showPassword ? (
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.858A9.954 9.954 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m-0.469 0.469L3 3l18 18"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
 
+            {/* REMEMBER ME & FORGOT PASSWORD */}
+            <div className="flex items-center justify-between text-xs px-0.5">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-600 select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-slate-300 text-[#1b6a4a] focus:ring-[#1b6a4a]/20 cursor-pointer"
+                />
+                <span>{labels.rememberMe}</span>
+              </label>
+
+              <button
+                type="button"
+                className="font-medium text-[#1b6a4a] hover:underline cursor-pointer"
+              >
+                {labels.forgotPassword}
+              </button>
+            </div>
+
+            {/* ERROR DISPLAY */}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 font-medium">
+                {error}
+              </div>
+            )}
+
+            {/* SUBMIT BUTTON */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-[#1b6a4a] py-2.5 px-4 text-xs font-bold text-white shadow-md shadow-[#1b6a4a]/20 transition hover:bg-[#15563b] focus:outline-none focus:ring-2 focus:ring-[#1b6a4a]/40 disabled:opacity-60 cursor-pointer"
+            >
+              <span>{loading ? labels.authenticating : labels.loginBtn}</span>
+              {!loading && (
+                <svg
+                  className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                  />
+                </svg>
+              )}
+            </button>
+          </form>
+
+          {/* DIVIDER */}
+          <div className="my-3.5 flex items-center justify-center gap-3">
+            <span className="h-[1px] flex-1 bg-slate-200" />
+            <span className="text-[11px] font-medium text-slate-400 lowercase">
+              {labels.or}
+            </span>
+            <span className="h-[1px] flex-1 bg-slate-200" />
           </div>
-        </section>
-      </div>
-    </main>
+
+          {/* REGISTRATION ACTION */}
+          <div>
+            <button
+              type="button"
+              onClick={() => router.push("/signup")}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-slate-50/60 py-2 px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+            >
+              <svg
+                className="h-3.5 w-3.5 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+              <span>{labels.registerBtn}</span>
+            </button>
+          </div>
+
+          {/* SECURITY & OFFICIAL ACCESS BADGE */}
+          <div className="mt-5 pt-3 border-t border-slate-100/80 flex items-center justify-center gap-2 text-center">
+            <svg
+              className="h-4 w-4 text-[#1b6a4a] shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+            <div className="text-[10px] leading-tight text-slate-500 font-medium">
+              <span>{labels.secureAccess}</span>
+              <br />
+              <span className="text-slate-400">{labels.govIndia}</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* FOOTER SECTION — Matches Reference 2 */}
+      <footer className="relative z-20 w-full py-4 px-4 text-center">
+        <p className="text-xs font-medium tracking-wide text-slate-600 sm:text-sm">
+          {labels.slogan}
+        </p>
+      </footer>
+    </div>
   );
 }

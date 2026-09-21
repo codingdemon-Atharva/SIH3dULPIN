@@ -59,10 +59,12 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
 
         {/* Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#1b4332] text-white text-xl font-bold mb-3 shadow-lg border border-[#2d6a4f]">
-            BV
-          </div>
+        <div className="text-center mb-8 flex flex-col items-center justify-center">
+          <img
+            src="/bhuvista-logo-official-new.png"
+            alt="BhuVista Logo"
+            className="h-16 w-auto object-contain mb-3 drop-shadow-md"
+          />
 
           <h1 className="text-3xl font-bold text-white tracking-wide">
             BhuVista

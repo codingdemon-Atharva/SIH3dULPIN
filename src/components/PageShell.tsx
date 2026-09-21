@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppHeader } from "./AppHeader";
 import { Sidebar } from "./Sidebar";
 
@@ -23,6 +23,13 @@ export function PageShell({
 }: PageShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [isSidebarOpen]);
+
   return (
     <div className="min-h-screen w-full max-w-vw overflow-x-hidden bg-[#f8f5ee] text-[#162a21] flex flex-col font-sans">
       {/* HEADER */}
@@ -42,6 +49,7 @@ export function PageShell({
           roleMode={roleMode}
           activeSection={activeSection}
           onSelectSection={onSelectSection}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
         {/* MAIN CONTENT CONTAINER */}

@@ -10,6 +10,7 @@ import { OrbitControls, Grid, Html, Environment, ContactShadows } from "@react-t
 
 import { PageShell } from "@/src/components/PageShell";
 import { getPublicPropertyDetails } from "@/src/app/actions/getPublicBuildings";
+import { useLanguage } from "@/src/context/LanguageContext";
 import type { ParsedBuilding, Property2D } from "@/src/lib/parser/types";
 import { getPolygonCenter } from "@/src/lib/coordinates";
 
@@ -35,6 +36,7 @@ if (typeof window !== "undefined") {
 export default function PropertyInspectionPage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useLanguage();
   const propertyId = params?.id as string;
 
   const [building, setBuilding] = useState<ParsedBuilding | null>(null);
@@ -181,7 +183,7 @@ export default function PropertyInspectionPage() {
             href="/"
             className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e2dad0] px-4 py-2 text-xs font-bold text-[#2d6a4f] hover:bg-[#f3efe6] transition shadow-sm"
           >
-            ← Back to Cadastral Map
+            {t.backToCadastralMap}
           </Link>
 
           {allUnits.length > 0 && property && (
@@ -245,12 +247,12 @@ export default function PropertyInspectionPage() {
                   <span className="rounded bg-[#2d6a4f]/10 px-2 py-0.5 text-[10px] font-extrabold text-[#2d6a4f] uppercase tracking-wider">
                     {currentIndex >= 0 ? `PARCEL ${currentIndex + 1} OF ${allUnits.length}` : "VERIFIED PARCEL"}
                   </span>
-                  <span className="rounded bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                    ✓ PUBLICLY VERIFIED CADASTRE
+                  <span className="rounded bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
+                    {t.approvedCadastre}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black text-[#162a21] tracking-tight">
-                  Property Unit {property.unitNumber}
+                  Unit {property.unitNumber}
                 </h1>
                 <p className="text-xs font-medium text-[#6b887a] mt-1">
                   National Cadastral Land Record • {building.name}
@@ -291,19 +293,19 @@ export default function PropertyInspectionPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <OverviewCard
                 label="ULPIN"
-                value={property.ulpin || "Not assigned"}
+                value={property.ulpin || t.pendingAssignment}
                 highlight={!!property.ulpin}
               />
               <OverviewCard
-                label="Survey / Unit Number"
+                label={t.unitNumberLabel}
                 value={`Unit ${property.unitNumber}`}
               />
               <OverviewCard
-                label="Land Use"
+                label={t.landUseLabel}
                 value={property.spaceType || "Residential"}
               />
               <OverviewCard
-                label="Surface Area"
+                label={t.areaLabel}
                 value={property.area ? `${property.area} m²` : "Not available"}
               />
             </div>
