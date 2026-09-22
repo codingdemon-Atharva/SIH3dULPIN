@@ -5,6 +5,7 @@ import React, {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import * as THREE from "three";
@@ -717,6 +718,10 @@ export default function VolumetricViewer({
   const [isInspectorClosed, setIsInspectorClosed] =
     useState<boolean>(false);
 
+  const controlsRef = useRef<any>(null);
+
+  const isIsolated = Boolean(selected && isInspectorClosed);
+
   // ----------------------------------------------------------
   // Survey frame
   // ----------------------------------------------------------
@@ -962,6 +967,87 @@ export default function VolumetricViewer({
   ]);
 
   // ----------------------------------------------------------
+  // Selected Property 3D Position
+  // ----------------------------------------------------------
+
+  const selectedUnitPosition =
+    useMemo(() => {
+      if (!selected) return null;
+      for (const floor of centeredBuilding) {
+        const unit = floor.units.find(
+          (u) => u.id === selected.id
+        );
+        if (unit && unit.polygon.length > 0) {
+          const center =
+            getPolygonCenter(
+              unit.polygon
+            );
+          const elevation =
+            Number(
+              floor.elevation
+            ) || 0;
+          const height =
+            Number(
+              (
+                unit as StyledProperty
+              ).heightMeters
+            ) ||
+            Number(
+              floor.height
+            ) ||
+            DEFAULT_FLOOR_HEIGHT;
+          return [
+            center.x,
+            elevation + height / 2,
+            center.y,
+          ] as [
+            number,
+            number,
+            number
+          ];
+        }
+      }
+      return null;
+    }, [
+      selected,
+      centeredBuilding,
+    ]);
+
+  const controlsTarget =
+    useMemo(() => {
+      if (
+        isIsolated &&
+        selectedUnitPosition
+      ) {
+        return selectedUnitPosition;
+      }
+      return [
+        0,
+        totalHeight / 2,
+        0,
+      ] as [
+        number,
+        number,
+        number
+      ];
+    }, [
+      isIsolated,
+      selectedUnitPosition,
+      totalHeight,
+    ]);
+
+  useEffect(() => {
+    if (controlsRef.current) {
+      controlsRef.current.target.set(
+        controlsTarget[0],
+        controlsTarget[1],
+        controlsTarget[2]
+      );
+      controlsRef.current.update();
+    }
+  }, [controlsTarget]);
+
+  // ----------------------------------------------------------
   // Camera
   // ----------------------------------------------------------
 
@@ -1116,20 +1202,38 @@ export default function VolumetricViewer({
                   ) ||
                   DEFAULT_FLOOR_HEIGHT;
 
+                const visibleUnits =
+                  isIsolated
+                    ? floor.units.filter(
+                        (unit) =>
+                          unit.id ===
+                          selected?.id
+                      )
+                    : floor.units;
+
+                if (
+                  visibleUnits.length ===
+                  0
+                ) {
+                  return null;
+                }
+
                 return (
                   <group
                     key={`floor-${floor.floorNumber}`}
                   >
-                    <FloorSlab
-                      units={
-                        floor.units
-                      }
-                      elevation={
-                        elevation
-                      }
-                    />
+                    {!isIsolated && (
+                      <FloorSlab
+                        units={
+                          floor.units
+                        }
+                        elevation={
+                          elevation
+                        }
+                      />
+                    )}
 
-                    {floor.units.map(
+                    {visibleUnits.map(
                       (unit) => (
                         <PropertyVolume
                           key={
@@ -1233,6 +1337,7 @@ export default function VolumetricViewer({
         ================================================= */}
 
         <OrbitControls
+          ref={controlsRef}
           makeDefault
           enableDamping
           dampingFactor={0.08}
@@ -1254,11 +1359,7 @@ export default function VolumetricViewer({
             Math.PI / 2 -
             0.03
           }
-          target={[
-            0,
-            totalHeight / 2,
-            0,
-          ]}
+          target={controlsTarget}
         />
       </Canvas>
 
