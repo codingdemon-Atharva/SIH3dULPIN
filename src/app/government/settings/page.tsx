@@ -3,12 +3,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { GovernmentPageHeader } from "@/src/components/GovernmentPageHeader";
 import { SessionUser } from "@/src/lib/auth";
-import { translations, type Language } from "@/src/lib/translations";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 export default function GovernmentSettingsPage() {
   const router = useRouter();
-  const [lang, setLang] = useState<Language>("EN");
+  const { lang, setLang, t } = useLanguage();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,11 +42,6 @@ export default function GovernmentSettingsPage() {
   // Load Preferences on Mount
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedLang = localStorage.getItem("bhuvista_lang") as Language;
-      if (savedLang === "EN" || savedLang === "HI") {
-        setLang(savedLang);
-      }
-
       const savedNotifs = localStorage.getItem("bhuvista_notif_prefs");
       if (savedNotifs) {
         try {
@@ -66,16 +61,14 @@ export default function GovernmentSettingsPage() {
 
     try {
       if (typeof window !== "undefined") {
-        localStorage.setItem("bhuvista_lang", lang);
         localStorage.setItem("bhuvista_notif_prefs", JSON.stringify(notifPrefs));
-        window.dispatchEvent(new Event("storage"));
       }
 
       setTimeout(() => {
         setSaving(false);
         setSaveMessage({
           type: "success",
-          text: translations[lang].settingsSavedSuccess,
+          text: t.settingsSavedSuccess,
         });
 
         // Clear toast after 4 seconds
@@ -85,7 +78,7 @@ export default function GovernmentSettingsPage() {
       setSaving(false);
       setSaveMessage({
         type: "error",
-        text: translations[lang].settingsSaveError,
+        text: t.settingsSaveError,
       });
     }
   };
@@ -99,8 +92,6 @@ export default function GovernmentSettingsPage() {
       router.push("/login");
     }
   };
-
-  const t = translations[lang];
 
   return (
     <div className="p-6 sm:p-8 space-y-8 max-w-5xl mx-auto font-sans text-[#162a21]">

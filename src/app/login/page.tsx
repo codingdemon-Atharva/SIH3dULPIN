@@ -51,7 +51,7 @@ export default function LoginPage() {
       ) {
         router.push("/government/dashboard");
       } else {
-        router.push("/");
+        router.push("/viewer");
       }
       router.refresh();
     } catch {
@@ -151,7 +151,7 @@ export default function LoginPage() {
           <img
             src="/bhuvista-logo-official-new.png"
             alt="BhuVista Logo"
-            className="h-16 sm:h-20 md:h-24 w-auto object-contain max-w-[200px] sm:max-w-[260px] md:max-w-[300px]"
+            className="h-20 sm:h-24 md:h-28 w-auto object-contain max-w-[230px] sm:max-w-[300px] md:max-w-[350px]"
           />
         </div>
       </header>
@@ -179,7 +179,7 @@ export default function LoginPage() {
                 value={lang}
                 onChange={(e) => setLang(e.target.value as "EN" | "HI")}
                 aria-label="Select Language"
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs pr-1"
+                className="appearance-none bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs pr-1"
               >
                 <option value="EN">English</option>
                 <option value="HI">हिंदी (Hindi)</option>

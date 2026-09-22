@@ -63,7 +63,7 @@ export default function SignupPage() {
           <img
             src="/bhuvista-logo-official-new.png"
             alt="BhuVista Logo"
-            className="h-16 w-auto object-contain mb-3 drop-shadow-md"
+            className="h-20 w-auto object-contain mb-3 drop-shadow-md"
           />
 
           <h1 className="text-3xl font-bold text-white tracking-wide">

@@ -54,7 +54,7 @@ export function Sidebar({
       itemId === "cadastral-map" ||
       itemId === "3d-property-map"
     ) {
-      router.push("/");
+      router.push("/viewer");
     }
   };
 
@@ -173,41 +173,16 @@ export function Sidebar({
         isOpen ? "w-[260px]" : "w-16"
       }`}
     >
-      {/* Sidebar Header & Toggle Row */}
-      <div className="border-b border-[#e2dad0] p-2.5 bg-[#f8f5ee] flex items-center justify-between">
-        {isOpen ? (
+      {/* Sidebar Header Row */}
+      {isOpen && (
+        <div className="border-b border-[#e2dad0] p-2.5 bg-[#f8f5ee] flex items-center justify-between">
           <div className="flex items-center justify-between w-full px-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#3d5a4c]">
               {!isPublicViewer ? `Active Portal: ${roleMode}` : "Navigation"}
             </span>
-            {onToggleSidebar && (
-              <button
-                type="button"
-                onClick={onToggleSidebar}
-                title="Collapse Sidebar"
-                aria-label="Collapse Sidebar"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-xs"
-              >
-                ◀
-              </button>
-            )}
           </div>
-        ) : (
-          <div className="flex items-center justify-center w-full">
-            {onToggleSidebar && (
-              <button
-                type="button"
-                onClick={onToggleSidebar}
-                title="Expand Sidebar"
-                aria-label="Expand Sidebar"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e2dad0] bg-white text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-xs"
-              >
-                ▶
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Navigation Groups */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">

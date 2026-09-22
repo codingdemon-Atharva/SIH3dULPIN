@@ -8,10 +8,10 @@ import {
 } from "@/src/app/actions/government";
 import { exportToLandXML } from "@/src/exporters/landxmlExporter";
 import { exportToCityGML } from "@/src/exporters/citygmlExporter";
-import { translations, type Language } from "@/src/lib/translations";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 export default function GovernmentDownloadsPage() {
-  const [lang, setLang] = useState<Language>("EN");
+  const { lang, t } = useLanguage();
   const [records, setRecords] = useState<GovernmentDownloadableRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,21 +23,6 @@ export default function GovernmentDownloadsPage() {
 
   // Selected records for batch download
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  // Listen for language changes in localStorage
-  useEffect(() => {
-    const updateLang = () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("bhuvista_lang") as Language;
-        if (saved === "EN" || saved === "HI") {
-          setLang(saved);
-        }
-      }
-    };
-    updateLang();
-    window.addEventListener("storage", updateLang);
-    return () => window.removeEventListener("storage", updateLang);
-  }, []);
 
   const fetchDownloadRecords = useCallback(async () => {
     setLoading(true);
@@ -60,8 +45,6 @@ export default function GovernmentDownloadsPage() {
   useEffect(() => {
     fetchDownloadRecords();
   }, [fetchDownloadRecords]);
-
-  const t = translations[lang];
 
   // Unique locations for filter dropdown
   const uniqueLocations = useMemo(() => {

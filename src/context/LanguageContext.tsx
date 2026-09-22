@@ -32,8 +32,22 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLangState(newLang);
     if (typeof window !== "undefined") {
       localStorage.setItem("bhuvista_lang", newLang);
+      window.dispatchEvent(new Event("storage"));
     }
   };
+
+  useEffect(() => {
+    const handleStorage = () => {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("bhuvista_lang") as Language;
+        if ((saved === "EN" || saved === "HI") && saved !== lang) {
+          setLangState(saved);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [lang]);
 
   const toggleLang = () => {
     const next = lang === "EN" ? "HI" : "EN";

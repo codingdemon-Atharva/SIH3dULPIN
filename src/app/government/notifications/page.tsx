@@ -6,11 +6,11 @@ import {
   getGovernmentNotifications,
   type GovernmentNotification,
 } from "@/src/app/actions/government";
-import { translations, type Language } from "@/src/lib/translations";
+import { useLanguage } from "@/src/context/LanguageContext";
 import Link from "next/link";
 
 export default function GovernmentNotificationsPage() {
-  const [lang, setLang] = useState<Language>("EN");
+  const { lang, t } = useLanguage();
   const [notifications, setNotifications] = useState<GovernmentNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,21 +19,6 @@ export default function GovernmentNotificationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [readNotifIds, setReadNotifIds] = useState<Set<string>>(new Set());
-
-  // Listen for language changes in localStorage
-  useEffect(() => {
-    const updateLang = () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("bhuvista_lang") as Language;
-        if (saved === "EN" || saved === "HI") {
-          setLang(saved);
-        }
-      }
-    };
-    updateLang();
-    window.addEventListener("storage", updateLang);
-    return () => window.removeEventListener("storage", updateLang);
-  }, []);
 
   // Load local read IDs
   useEffect(() => {
@@ -89,8 +74,6 @@ export default function GovernmentNotificationsPage() {
     notifications.forEach((n) => next.add(n.id));
     saveReadNotifs(next);
   };
-
-  const t = translations[lang];
 
   // Category Options
   const categories = [

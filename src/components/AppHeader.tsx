@@ -94,7 +94,7 @@ export function AppHeader({
           <img
             src="/bhuvista-logo-official-new.png"
             alt="BhuVista"
-            className="h-14 w-auto object-contain max-h-[64px]"
+            className="h-16 w-auto object-contain max-h-[74px]"
           />
         </div>
       </div>
