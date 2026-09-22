@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { GovernmentPageHeader } from "@/src/components/GovernmentPageHeader";
-import { translations, type Language } from "@/src/lib/translations";
+import { useLanguage } from "@/src/context/LanguageContext";
 import Link from "next/link";
 
 interface HelpModule {
@@ -22,26 +22,9 @@ interface FAQItem {
 }
 
 export default function GovernmentHelpSupportPage() {
-  const [lang, setLang] = useState<Language>("EN");
+  const { lang, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState<"DOCS" | "FAQ" | "SUPPORT">("DOCS");
-
-  // Listen for language changes in localStorage
-  useEffect(() => {
-    const updateLang = () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("bhuvista_lang") as Language;
-        if (saved === "EN" || saved === "HI") {
-          setLang(saved);
-        }
-      }
-    };
-    updateLang();
-    window.addEventListener("storage", updateLang);
-    return () => window.removeEventListener("storage", updateLang);
-  }, []);
-
-  const t = translations[lang];
 
   // Actual BhuVista Module Documentation
   const modules: HelpModule[] = useMemo(() => {

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { SessionUser } from "@/src/lib/auth";
+import { useLanguage } from "@/src/context/LanguageContext";
 
 interface GovernmentLayoutProps {
   children: React.ReactNode;
@@ -12,33 +13,14 @@ interface GovernmentLayoutProps {
 export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { lang, toggleLang, t } = useLanguage();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [lang, setLang] = useState<"EN" | "HI">("EN");
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [headerNotifs, setHeaderNotifs] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Read saved language from localStorage
-    if (typeof window !== "undefined") {
-      const savedLang = localStorage.getItem("bhuvista_lang") as "EN" | "HI";
-      if (savedLang === "EN" || savedLang === "HI") {
-        setLang(savedLang);
-      }
-    }
-  }, []);
-
-  const handleLanguageToggle = () => {
-    const nextLang = lang === "EN" ? "HI" : "EN";
-    setLang(nextLang);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("bhuvista_lang", nextLang);
-      window.dispatchEvent(new Event("storage"));
-    }
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -195,7 +177,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
           <img
             src="/bhuvista-logo-official-new.png"
             alt="BhuVista Logo"
-            className="h-11 sm:h-12 w-auto object-contain max-h-[52px]"
+            className="h-13 sm:h-14 w-auto object-contain max-h-[62px]"
           />
           <div className="flex flex-col text-left">
             <div className="flex items-center gap-2">
@@ -216,7 +198,7 @@ export default function GovernmentLayout({ children }: GovernmentLayoutProps) {
           {/* Language Selector */}
           <button
             type="button"
-            onClick={handleLanguageToggle}
+            onClick={toggleLang}
             className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e2dad0] bg-white px-3 text-xs font-semibold text-[#2d6a4f] hover:bg-[#f3efe6] transition cursor-pointer shadow-sm"
           >
             <span>🌐</span>
