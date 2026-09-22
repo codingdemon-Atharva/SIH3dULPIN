@@ -714,6 +714,8 @@ export default function VolumetricViewer({
     useState<Property2D | null>(
       null
     );
+  const [isInspectorClosed, setIsInspectorClosed] =
+    useState<boolean>(false);
 
   // ----------------------------------------------------------
   // Survey frame
@@ -948,7 +950,12 @@ export default function VolumetricViewer({
             )
         );
 
-    setSelected((prev) => (prev?.id === match?.id ? prev : match || null));
+    setSelected((prev) => {
+      if (prev?.id !== match?.id && match) {
+        setIsInspectorClosed(false);
+      }
+      return match || null;
+    });
   }, [
     selectedPropertyId,
     building,
@@ -1150,6 +1157,9 @@ export default function VolumetricViewer({
                           onSelect={() => {
                             setSelected(
                               unit
+                            );
+                            setIsInspectorClosed(
+                              false
                             );
 
                             onPropertySelect?.(
@@ -1381,7 +1391,7 @@ export default function VolumetricViewer({
           SELECTED PROPERTY
       ====================================================== */}
 
-      {selected && (
+      {selected && !isInspectorClosed && (
         <div
           style={{
             position:
@@ -1485,7 +1495,7 @@ export default function VolumetricViewer({
           <button
             type="button"
             onClick={() =>
-              setSelected(null)
+              setIsInspectorClosed(true)
             }
             style={{
               width:
