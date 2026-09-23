@@ -714,6 +714,10 @@ export default function VolumetricViewer({
     useState<Property2D | null>(
       null
     );
+  const [isInspectorClosed, setIsInspectorClosed] =
+    useState<boolean>(false);
+
+  const isIsolated = Boolean(selected && isInspectorClosed);
 
   // ----------------------------------------------------------
   // Survey frame
@@ -893,6 +897,33 @@ export default function VolumetricViewer({
     ]);
 
   // ----------------------------------------------------------
+  // Selected Unit Data for Isolation / Focusing
+  // ----------------------------------------------------------
+
+  const selectedUnitData = useMemo(() => {
+    if (!selected) return null;
+    for (const floor of centeredBuilding) {
+      const match = floor.units.find((u) => u.id === selected.id);
+      if (match) {
+        const elevation = Number(floor.elevation) || 0;
+        const floorHeight = Number(floor.height) || DEFAULT_FLOOR_HEIGHT;
+        const center = getPolygonCenter(match.polygon);
+        const heightMeters =
+          Number((match as StyledProperty).heightMeters) || floorHeight;
+        return {
+          unit: match,
+          center: [
+            center.x,
+            elevation + heightMeters / 2,
+            center.y,
+          ] as [number, number, number],
+        };
+      }
+    }
+    return null;
+  }, [selected, centeredBuilding]);
+
+  // ----------------------------------------------------------
   // Total vertical height
   // ----------------------------------------------------------
 
@@ -948,7 +979,12 @@ export default function VolumetricViewer({
             )
         );
 
-    setSelected((prev) => (prev?.id === match?.id ? prev : match || null));
+    setSelected((prev) => {
+      if (prev?.id !== match?.id && match) {
+        setIsInspectorClosed(false);
+      }
+      return match || null;
+    });
   }, [
     selectedPropertyId,
     building,
@@ -1109,20 +1145,30 @@ export default function VolumetricViewer({
                   ) ||
                   DEFAULT_FLOOR_HEIGHT;
 
+                const visibleUnits = isIsolated
+                  ? floor.units.filter(
+                      (unit) => unit.id === selected?.id
+                    )
+                  : floor.units;
+
+                if (visibleUnits.length === 0) return null;
+
                 return (
                   <group
                     key={`floor-${floor.floorNumber}`}
                   >
-                    <FloorSlab
-                      units={
-                        floor.units
-                      }
-                      elevation={
-                        elevation
-                      }
-                    />
+                    {!isIsolated && (
+                      <FloorSlab
+                        units={
+                          floor.units
+                        }
+                        elevation={
+                          elevation
+                        }
+                      />
+                    )}
 
-                    {floor.units.map(
+                    {visibleUnits.map(
                       (unit) => (
                         <PropertyVolume
                           key={
@@ -1150,6 +1196,9 @@ export default function VolumetricViewer({
                           onSelect={() => {
                             setSelected(
                               unit
+                            );
+                            setIsInspectorClosed(
+                              false
                             );
 
                             onPropertySelect?.(
@@ -1244,11 +1293,15 @@ export default function VolumetricViewer({
             Math.PI / 2 -
             0.03
           }
-          target={[
-            0,
-            totalHeight / 2,
-            0,
-          ]}
+          target={
+            isIsolated && selectedUnitData
+              ? selectedUnitData.center
+              : [
+                  0,
+                  totalHeight / 2,
+                  0,
+                ]
+          }
         />
       </Canvas>
 
@@ -1381,7 +1434,7 @@ export default function VolumetricViewer({
           SELECTED PROPERTY
       ====================================================== */}
 
-      {selected && (
+      {selected && !isInspectorClosed && (
         <div
           style={{
             position:
@@ -1485,7 +1538,7 @@ export default function VolumetricViewer({
           <button
             type="button"
             onClick={() =>
-              setSelected(null)
+              setIsInspectorClosed(true)
             }
             style={{
               width:

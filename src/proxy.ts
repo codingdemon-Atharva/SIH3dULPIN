@@ -7,6 +7,7 @@ export async function proxy(request: NextRequest) {
 
   const isPublicRoute =
     pathname === "/" ||
+    pathname.startsWith("/viewer") ||
     pathname.startsWith("/properties/") ||
     pathname.startsWith("/ulpin-registry") ||
     pathname.startsWith("/land-records") ||
