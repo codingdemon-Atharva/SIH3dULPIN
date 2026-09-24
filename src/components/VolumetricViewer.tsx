@@ -5,7 +5,6 @@ import React, {
   Suspense,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import * as THREE from "three";
@@ -992,85 +991,6 @@ export default function VolumetricViewer({
   ]);
 
   // ----------------------------------------------------------
-  // Selected Property 3D Position & Size
-  // ----------------------------------------------------------
-
-  const selectedUnitDetails =
-    useMemo(() => {
-      if (!selected) return null;
-      for (const floor of centeredBuilding) {
-        const unit = floor.units.find(
-          (u) => u.id === selected.id
-        );
-        if (unit && unit.polygon.length > 0) {
-          const center =
-            getPolygonCenter(
-              unit.polygon
-            );
-          const elevation =
-            Number(
-              floor.elevation
-            ) || 0;
-          const height =
-            Number(
-              (
-                unit as StyledProperty
-              ).heightMeters
-            ) ||
-            Number(
-              floor.height
-            ) ||
-            DEFAULT_FLOOR_HEIGHT;
-
-          const xs = unit.polygon.map((p) => p.x);
-          const ys = unit.polygon.map((p) => p.y);
-          const w = Math.max(...xs) - Math.min(...xs);
-          const d = Math.max(...ys) - Math.min(...ys);
-          const diag = Math.sqrt(w * w + d * d);
-
-          return {
-            position: [
-              center.x,
-              elevation + height / 2,
-              center.y,
-            ] as [number, number, number],
-            size: Math.max(diag, height, 5),
-          };
-        }
-      }
-      return null;
-    }, [
-      selected,
-      centeredBuilding,
-    ]);
-
-  const selectedUnitPosition = selectedUnitDetails?.position || null;
-  const selectedUnitSize = selectedUnitDetails?.size || 10;
-
-  const controlsTarget =
-    useMemo(() => {
-      if (
-        isIsolated &&
-        selectedUnitPosition
-      ) {
-        return selectedUnitPosition;
-      }
-      return [
-        0,
-        totalHeight / 2,
-        0,
-      ] as [
-        number,
-        number,
-        number
-      ];
-    }, [
-      isIsolated,
-      selectedUnitPosition,
-      totalHeight,
-    ]);
-
-  // ----------------------------------------------------------
   // Camera
   // ----------------------------------------------------------
 
@@ -1101,39 +1021,6 @@ export default function VolumetricViewer({
       dimensions,
       totalHeight,
     ]);
-
-  useEffect(() => {
-    if (controlsRef.current) {
-      controlsRef.current.target.set(
-        controlsTarget[0],
-        controlsTarget[1],
-        controlsTarget[2]
-      );
-
-      if (isIsolated && selectedUnitPosition) {
-        const offset = Math.max(selectedUnitSize * 1.8, 12);
-        const objectRef = controlsRef.current.object;
-        if (objectRef) {
-          objectRef.position.set(
-            selectedUnitPosition[0] + offset,
-            selectedUnitPosition[1] + offset * 0.7,
-            selectedUnitPosition[2] + offset
-          );
-        }
-      } else if (!isIsolated) {
-        const objectRef = controlsRef.current.object;
-        if (objectRef) {
-          objectRef.position.set(
-            cameraPosition[0],
-            cameraPosition[1],
-            cameraPosition[2]
-          );
-        }
-      }
-
-      controlsRef.current.update();
-    }
-  }, [controlsTarget, isIsolated, selectedUnitPosition, selectedUnitSize, cameraPosition]);
 
   const hasGeometry =
     centeredBuilding.some(
@@ -1258,21 +1145,6 @@ export default function VolumetricViewer({
                   ) ||
                   DEFAULT_FLOOR_HEIGHT;
 
-                const visibleUnits =
-                  isIsolated
-                    ? floor.units.filter(
-                        (unit) =>
-                          unit.id ===
-                          selected?.id
-                      )
-                    : floor.units;
-
-                if (
-                  visibleUnits.length ===
-                  0
-                ) {
-                  return null;
-                }
                 const visibleUnits = isIsolated
                   ? floor.units.filter(
                       (unit) => unit.id === selected?.id
@@ -1400,7 +1272,6 @@ export default function VolumetricViewer({
         ================================================= */}
 
         <OrbitControls
-          ref={controlsRef}
           makeDefault
           enableDamping
           dampingFactor={0.08}
@@ -1422,7 +1293,6 @@ export default function VolumetricViewer({
             Math.PI / 2 -
             0.03
           }
-          target={controlsTarget}
           target={
             isIsolated && selectedUnitData
               ? selectedUnitData.center
@@ -1436,7 +1306,7 @@ export default function VolumetricViewer({
       </Canvas>
 
       {/* ======================================================
-          HEADER & ISOLATION BANNER
+          HEADER
       ====================================================== */}
 
       <div
@@ -1446,125 +1316,73 @@ export default function VolumetricViewer({
           top: "18px",
           left: "18px",
           zIndex: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
+          padding:
+            "12px 16px",
+          borderRadius:
+            "9px",
+          background:
+            "rgba(255,255,255,0.96)",
+          border:
+            "1px solid #cbd5e1",
+          boxShadow:
+            "0 4px 15px rgba(0,0,0,0.08)",
+          backdropFilter:
+            "blur(6px)",
         }}
       >
         <div
           style={{
-            padding:
-              "12px 16px",
-            borderRadius:
-              "9px",
-            background:
-              "rgba(255,255,255,0.96)",
-            border:
-              "1px solid #cbd5e1",
-            boxShadow:
-              "0 4px 15px rgba(0,0,0,0.08)",
-            backdropFilter:
-              "blur(6px)",
+            fontSize:
+              "10px",
+            color:
+              "#2563eb",
+            fontWeight:
+              800,
+            letterSpacing:
+              "0.8px",
           }}
         >
-          <div
-            style={{
-              fontSize:
-                "10px",
-              color:
-                "#2563eb",
-              fontWeight:
-                800,
-              letterSpacing:
-                "0.8px",
-            }}
-          >
-            3D CADASTRAL MODEL
-          </div>
-
-          <div
-            style={{
-              marginTop:
-                "3px",
-              fontSize:
-                "17px",
-              fontWeight:
-                800,
-              color:
-                "#0f172a",
-            }}
-          >
-            {building.name}
-          </div>
-
-          <div
-            style={{
-              marginTop:
-                "4px",
-              fontSize:
-                "10px",
-              color:
-                "#64748b",
-            }}
-          >
-            {dimensions.width.toFixed(
-              1
-            )}
-            m ×{" "}
-            {dimensions.depth.toFixed(
-              1
-            )}
-            m ×{" "}
-            {totalHeight.toFixed(
-              1
-            )}
-            m
-          </div>
+          3D CADASTRAL MODEL
         </div>
 
-        {isIsolated && selected && (
-          <div
-            style={{
-              padding: "10px 14px",
-              borderRadius: "9px",
-              background: "rgba(255,255,255,0.96)",
-              border: "1.5px solid #2d6a4f",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-              backdropFilter: "blur(6px)",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: "10px", fontWeight: 800, color: "#2d6a4f" }}>
-                ISOLATED 3D INSPECTION MODE
-              </div>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a" }}>
-                Unit {selected.unitNumber}
-              </div>
-            </div>
+        <div
+          style={{
+            marginTop:
+              "3px",
+            fontSize:
+              "17px",
+            fontWeight:
+              800,
+            color:
+              "#0f172a",
+          }}
+        >
+          {building.name}
+        </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setIsInspectorClosed(false);
-              }}
-              style={{
-                padding: "5px 10px",
-                borderRadius: "6px",
-                border: "1px solid #cbd5e1",
-                background: "#f1f5f9",
-                color: "#0f172a",
-                cursor: "pointer",
-                fontSize: "11px",
-                fontWeight: 700,
-              }}
-            >
-              Reset 3D View
-            </button>
-          </div>
-        )}
+        <div
+          style={{
+            marginTop:
+              "4px",
+            fontSize:
+              "10px",
+            color:
+              "#64748b",
+          }}
+        >
+          {dimensions.width.toFixed(
+            1
+          )}
+          m ×{" "}
+          {dimensions.depth.toFixed(
+            1
+          )}
+          m ×{" "}
+          {totalHeight.toFixed(
+            1
+          )}
+          m
+        </div>
       </div>
 
       {/* ======================================================
