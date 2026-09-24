@@ -4,18 +4,18 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import * as THREE from "three";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, Html, Environment, ContactShadows } from "@react-three/drei";
-
 import { PageShell } from "@/src/components/PageShell";
 import { getPublicPropertyDetails } from "@/src/app/actions/getPublicBuildings";
 import { useLanguage } from "@/src/context/LanguageContext";
 import type { ParsedBuilding, Property2D } from "@/src/lib/parser/types";
-import { getPolygonCenter } from "@/src/lib/coordinates";
 
 const RealWorldMapViewer = dynamic(
   () => import("@/src/components/RealWorldMapViewer"),
+  { ssr: false }
+);
+
+const VolumetricViewer = dynamic(
+  () => import("@/src/components/VolumetricViewer"),
   { ssr: false }
 );
 
@@ -30,6 +30,72 @@ if (typeof window !== "undefined") {
       return;
     }
     originalWarn(...args);
+  };
+}
+
+// Helper function to safely parse a raw unit object into Property2D
+function parseUnitPolygon(unit: Record<string, unknown>): Property2D {
+  let polygon = unit?.polygon;
+  if (typeof polygon === "string") {
+    try {
+      polygon = JSON.parse(polygon);
+    } catch {
+      polygon = [];
+    }
+  }
+  return {
+    id: String(unit.id || ""),
+    unitNumber: String(unit.unitNumber || "UNIT"),
+    floorNumber: Number(unit.floorNumber) || 0,
+    area: Number(unit.area) || 0,
+    polygon: Array.isArray(polygon) ? polygon : [],
+    ulpin: unit.ulpin ? String(unit.ulpin) : undefined,
+    spaceType: unit.spaceType ? String(unit.spaceType) : "RESIDENTIAL",
+  };
+}
+
+// Helper function to map server building object to ParsedBuilding
+function mapServerToParsedBuilding(dbBuilding: Record<string, unknown>): ParsedBuilding {
+  const latitude = Number(dbBuilding?.latitude);
+  const longitude = Number(dbBuilding?.longitude);
+  const hasValidGeoreference =
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180;
+
+  const floors = Array.isArray(dbBuilding?.floors) ? dbBuilding.floors : [];
+
+  return {
+    id: String(dbBuilding.id || ""),
+    name: String(dbBuilding.name || "Cadastral Structure"),
+    ...(hasValidGeoreference ? { georeference: { latitude, longitude } } : {}),
+    floors: floors.map((f: Record<string, unknown>) => ({
+      floorNumber: Number(f.floorNumber) || 0,
+      elevation: Number(f.elevation) || 0,
+      height: Number(f.height) || 3.2,
+      units: Array.isArray(f.units)
+        ? f.units.map((u: Record<string, unknown>) => {
+            let polygon = u.polygon;
+            if (typeof polygon === "string") {
+              try {
+                polygon = JSON.parse(polygon);
+              } catch {
+                polygon = [];
+              }
+            }
+            return {
+              id: String(u.id || ""),
+              unitNumber: String(u.unitNumber || "UNIT"),
+              floorNumber: Number(f.floorNumber) || 0,
+              area: Number(u.area) || 0,
+              polygon: Array.isArray(polygon) ? polygon : [],
+              ulpin: u.ulpin ? String(u.ulpin) : undefined,
+              spaceType: u.spaceType ? String(u.spaceType) : "RESIDENTIAL",
+            };
+          })
+        : [],
+    })),
   };
 }
 
@@ -55,10 +121,19 @@ export default function PropertyInspectionPage() {
       try {
         if (propertyId) {
           const res = await getPublicPropertyDetails(propertyId);
-          if (isMounted && res.success && res.building && res.unit) {
+          if (isMounted && res.success && res.building) {
             const parsed = mapServerToParsedBuilding(res.building);
             setBuilding(parsed);
-            setProperty(res.unit as unknown as Property2D);
+
+            // Find matching unit in parsed building or parse res.unit polygon
+            const matchedUnit =
+              parsed.floors
+                .flatMap((f) => f.units)
+                .find((u) => u.id === propertyId || u.ulpin === propertyId) ||
+              (res.unit ? parseUnitPolygon(res.unit) : null) ||
+              (parsed.floors[0]?.units[0] ?? null);
+
+            setProperty(matchedUnit);
             setLoading(false);
             return;
           }
@@ -123,56 +198,14 @@ export default function PropertyInspectionPage() {
     router.push(`/properties/${targetId}`);
   };
 
-  // Helper function to map server building object to ParsedBuilding
-  function mapServerToParsedBuilding(dbBuilding: any): ParsedBuilding {
-    const latitude = Number(dbBuilding?.latitude);
-    const longitude = Number(dbBuilding?.longitude);
-    const hasValidGeoreference =
-      Number.isFinite(latitude) &&
-      Number.isFinite(longitude) &&
-      Math.abs(latitude) <= 90 &&
-      Math.abs(longitude) <= 180;
 
-    const floors = Array.isArray(dbBuilding?.floors) ? dbBuilding.floors : [];
-
-    return {
-      id: dbBuilding.id,
-      name: dbBuilding.name || "Cadastral Structure",
-      ...(hasValidGeoreference ? { georeference: { latitude, longitude } } : {}),
-      floors: floors.map((f: any) => ({
-        floorNumber: Number(f.floorNumber) || 0,
-        elevation: Number(f.elevation) || 0,
-        height: Number(f.height) || 3.2,
-        units: Array.isArray(f.units)
-          ? f.units.map((u: any) => {
-              let polygon = u.polygon;
-              if (typeof polygon === "string") {
-                try {
-                  polygon = JSON.parse(polygon);
-                } catch {
-                  polygon = [];
-                }
-              }
-              return {
-                id: u.id,
-                unitNumber: u.unitNumber || "UNIT",
-                floorNumber: Number(f.floorNumber) || 0,
-                area: Number(u.area) || 0,
-                polygon: Array.isArray(polygon) ? polygon : [],
-                ulpin: u.ulpin || undefined,
-                spaceType: u.spaceType || "RESIDENTIAL",
-              };
-            })
-          : [],
-      })),
-    };
-  }
-
-  // Check if geometry is valid (needs at least 3 points)
+  // Check if geometry is valid (needs at least 3 points in at least one unit)
   const hasValid3DGeometry = useMemo(() => {
-    if (!property || !Array.isArray(property.polygon)) return false;
-    return property.polygon.length >= 3;
-  }, [property]);
+    if (!building?.floors) return false;
+    return building.floors.some((f) =>
+      f.units.some((u) => Array.isArray(u.polygon) && u.polygon.length >= 3)
+    );
+  }, [building]);
 
   return (
     <PageShell roleMode="PUBLIC_VIEWER" userRole={null} onRoleModeChange={() => {}}>
@@ -330,13 +363,13 @@ export default function PropertyInspectionPage() {
                   </div>
 
                   <div className="w-full h-[420px] rounded-xl overflow-hidden border border-[#e2dad0] bg-[#f8f5ee] relative flex-1">
-                    {hasValid3DGeometry ? (
-                      <SingleUnit3DViewer
+                    {hasValid3DGeometry && building ? (
+                      <VolumetricViewer
                         key={property.id}
-                        polygon={property.polygon}
-                        elevation={(property.floorNumber - 1) * 3.2}
-                        height={3.2}
-                        unitNumber={property.unitNumber}
+                        building={building}
+                        selectedPropertyId={property.id}
+                        onPropertySelect={(p) => handleUnitToggle(p.id)}
+                        style={{ height: "100%", minHeight: "420px", borderRadius: "0.75rem", border: "none" }}
                       />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#f8f5ee]">
@@ -463,80 +496,3 @@ function OverviewCard({
   );
 }
 
-function SingleUnit3DViewer({
-  polygon,
-  elevation,
-  height,
-  unitNumber,
-}: {
-  polygon: { x: number; y: number }[];
-  elevation: number;
-  height: number;
-  unitNumber: string;
-}) {
-  const center = useMemo(() => getPolygonCenter(polygon), [polygon]);
-
-  const geometry = useMemo(() => {
-    if (!polygon || polygon.length < 3) return null;
-
-    const shape = new THREE.Shape();
-    polygon.forEach((pt, idx) => {
-      if (idx === 0) shape.moveTo(pt.x - center.x, pt.y - center.y);
-      else shape.lineTo(pt.x - center.x, pt.y - center.y);
-    });
-    shape.closePath();
-
-    const geo = new THREE.ExtrudeGeometry(shape, {
-      depth: height,
-      bevelEnabled: false,
-    });
-    geo.center();
-    return geo;
-  }, [polygon, center, height]);
-
-  if (!geometry) return null;
-
-  return (
-    <div className="relative w-full h-full">
-      <Canvas
-        shadows={{ type: THREE.PCFShadowMap }}
-        camera={{ position: [15, 12, 18], fov: 40 }}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-      >
-        <color attach="background" args={["#f8f5ee"]} />
-        <ambientLight intensity={1.2} />
-        <directionalLight position={[15, 25, 15]} intensity={1.5} castShadow />
-        <Environment preset="city" />
-
-        <group position={[0, 0, 0]}>
-          <group rotation={[-Math.PI / 2, 0, 0]}>
-            <mesh geometry={geometry} castShadow receiveShadow>
-              <meshStandardMaterial
-                color="#2d6a4f"
-                transparent
-                opacity={0.88}
-                roughness={0.2}
-                metalness={0.1}
-              />
-            </mesh>
-
-            <lineSegments>
-              <edgesGeometry attach="geometry" args={[geometry]} />
-              <lineBasicMaterial color="#ffffff" linewidth={2} />
-            </lineSegments>
-          </group>
-
-          <Html position={[0, height / 2 + 0.8, 0]} center distanceFactor={18}>
-            <div className="px-3 py-1 bg-[#2d6a4f] border border-white rounded-lg text-white text-[11px] font-extrabold shadow-md whitespace-nowrap">
-              PARCEL {unitNumber}
-            </div>
-          </Html>
-        </group>
-
-        <ContactShadows position={[0, -height / 2 - 0.05, 0]} opacity={0.4} scale={30} blur={1} />
-        <Grid position={[0, -height / 2 - 0.06, 0]} args={[40, 40]} cellColor="#e2dad0" sectionColor="#2d6a4f" />
-        <OrbitControls makeDefault enableDamping dampingFactor={0.08} />
-      </Canvas>
-    </div>
-  );
-}
