@@ -21,6 +21,7 @@ function Volumetric3DLandMapContent() {
 
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
   const [selectedUnit, setSelectedUnit] = useState<Property2D | null>(null);
+  const [isInspectorClosed, setIsInspectorClosed] = useState<boolean>(false);
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
 
   // Load real GIS buildings from database
@@ -205,6 +206,7 @@ function Volumetric3DLandMapContent() {
             onChange={(e) => {
               setSelectedBuildingId(e.target.value);
               setSelectedUnit(null);
+              setIsInspectorClosed(false);
             }}
             className="rounded-xl border border-[#e2dad0] bg-white px-4 py-2.5 text-xs font-bold text-[#162a21] focus:outline-none focus:border-[#2d6a4f] transition shadow-sm cursor-pointer min-w-[280px]"
           >
@@ -252,7 +254,12 @@ function Volumetric3DLandMapContent() {
             <VolumetricViewer
               building={selectedBuilding}
               selectedPropertyId={selectedUnit?.id}
-              onPropertySelect={(unit) => setSelectedUnit(unit)}
+              onPropertySelect={(unit) => {
+                setSelectedUnit(unit);
+                setIsInspectorClosed(false);
+              }}
+              isInspectorClosed={isInspectorClosed}
+              onInspectorCloseChange={(closed) => setIsInspectorClosed(closed)}
             />
           ) : (
             <div className="min-h-[650px] flex flex-col items-center justify-center p-8 text-center bg-[#f8f5ee] space-y-4">
@@ -291,65 +298,103 @@ function Volumetric3DLandMapContent() {
 
           {selectedUnit ? (
             <div className="space-y-4 text-xs">
-              <div className="rounded-xl border border-[#e2dad0] bg-white p-3.5 space-y-2">
-                <div className="text-[10px] font-bold text-[#6b887a] uppercase">
-                  Selected Unit / Volume
-                </div>
-                <div className="text-lg font-extrabold text-[#162a21]">
-                  Unit {selectedUnit.unitNumber}
-                </div>
-                <div className="text-[11px] font-mono text-[#2d6a4f] bg-[#2d6a4f]/10 p-2 rounded-lg break-all font-bold">
-                  {selectedUnit.ulpin || `3D-${selectedBuilding?.id || "BLD"}-F0${selectedUnit.floorNumber}-${selectedUnit.unitNumber}`}
-                </div>
-              </div>
+              {!isInspectorClosed ? (
+                <>
+                  <div className="rounded-xl border border-[#e2dad0] bg-white p-3.5 space-y-2">
+                    <div className="text-[10px] font-bold text-[#6b887a] uppercase">
+                      Selected Unit / Volume
+                    </div>
+                    <div className="text-lg font-extrabold text-[#162a21]">
+                      Unit {selectedUnit.unitNumber}
+                    </div>
+                    <div className="text-[11px] font-mono text-[#2d6a4f] bg-[#2d6a4f]/10 p-2 rounded-lg break-all font-bold">
+                      {selectedUnit.ulpin || `3D-${selectedBuilding?.id || "BLD"}-F0${selectedUnit.floorNumber}-${selectedUnit.unitNumber}`}
+                    </div>
+                  </div>
 
-              <div className="space-y-2 rounded-xl border border-[#e2dad0] bg-white p-3.5">
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                  <span className="text-[#6b887a] font-medium">Floor Level</span>
-                  <span className="font-bold text-[#162a21]">Floor {selectedUnit.floorNumber}</span>
+                  <div className="space-y-2 rounded-xl border border-[#e2dad0] bg-white p-3.5">
+                    <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                      <span className="text-[#6b887a] font-medium">Floor Level</span>
+                      <span className="font-bold text-[#162a21]">Floor {selectedUnit.floorNumber}</span>
+                    </div>
+
+                    <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                      <span className="text-[#6b887a] font-medium">Space Classification</span>
+                      <span className="font-bold text-[#2d6a4f]">{selectedUnit.spaceType || "Residential"}</span>
+                    </div>
+
+                    <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                      <span className="text-[#6b887a] font-medium">Usable Area</span>
+                      <span className="font-bold text-[#162a21]">{selectedUnit.area ? `${selectedUnit.area} m²` : "N/A"}</span>
+                    </div>
+
+                    <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                      <span className="text-[#6b887a] font-medium">Clear Story Height</span>
+                      <span className="font-bold text-[#162a21]">3.20 meters</span>
+                    </div>
+
+                    <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
+                      <span className="text-[#6b887a] font-medium">3D Spatial Boundary</span>
+                      <span className="font-bold text-[#2d6a4f]">✓ VERIFIED CLOSED</span>
+                    </div>
+                  </div>
+
+                  {/* ACTION BUTTONS */}
+                  <div className="pt-2 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsInspectorClosed(true)}
+                      className="w-full rounded-xl border border-[#cbd5e1] bg-[#f1f5f9] py-2.5 px-4 text-xs font-bold text-[#0f172a] hover:bg-[#e2e8f0] transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>🔍</span>
+                      <span>Close Inspector & Isolate 3D Unit</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpen2DMap}
+                      className="w-full rounded-xl bg-[#2d6a4f] py-2.5 px-4 text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>🗺️</span>
+                      <span>View in 2D Cadastral Map</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenRegistry}
+                      className="w-full rounded-xl border border-[#e2dad0] bg-white py-2.5 px-4 text-xs font-bold text-[#162a21] hover:bg-[#f3efe6] transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>📋</span>
+                      <span>View in Property Registry</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-[#2d6a4f] bg-[#2d6a4f]/10 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-[#2d6a4f] uppercase tracking-wider">
+                      3D Isolation Mode Active
+                    </span>
+                    <span className="rounded bg-[#2d6a4f] text-white px-2 py-0.5 text-[9px] font-bold">
+                      ISOLATED
+                    </span>
+                  </div>
+                  <div className="text-base font-extrabold text-[#162a21]">
+                    Unit {selectedUnit.unitNumber}
+                  </div>
+                  <p className="text-[#3d5a4c] text-[11px] leading-relaxed">
+                    Unrelated property geometry is hidden. The 3D camera is focused on the isolated property.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsInspectorClosed(false)}
+                    className="w-full rounded-xl bg-[#2d6a4f] py-2.5 px-4 text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>👁️</span>
+                    <span>Reopen Inspector & Restore View</span>
+                  </button>
                 </div>
-
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                  <span className="text-[#6b887a] font-medium">Space Classification</span>
-                  <span className="font-bold text-[#2d6a4f]">{selectedUnit.spaceType || "Residential"}</span>
-                </div>
-
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                  <span className="text-[#6b887a] font-medium">Usable Area</span>
-                  <span className="font-bold text-[#162a21]">{selectedUnit.area ? `${selectedUnit.area} m²` : "N/A"}</span>
-                </div>
-
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                  <span className="text-[#6b887a] font-medium">Clear Story Height</span>
-                  <span className="font-bold text-[#162a21]">3.20 meters</span>
-                </div>
-
-                <div className="flex justify-between border-b border-[#e2dad0]/60 pb-1.5">
-                  <span className="text-[#6b887a] font-medium">3D Spatial Boundary</span>
-                  <span className="font-bold text-[#2d6a4f]">✓ VERIFIED CLOSED</span>
-                </div>
-              </div>
-
-              {/* ACTION BUTTONS */}
-              <div className="pt-2 space-y-2">
-                <button
-                  type="button"
-                  onClick={handleOpen2DMap}
-                  className="w-full rounded-xl bg-[#2d6a4f] py-2.5 px-4 text-xs font-bold text-white hover:bg-[#1b4332] transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>🗺️</span>
-                  <span>View in 2D Cadastral Map</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenRegistry}
-                  className="w-full rounded-xl border border-[#e2dad0] bg-white py-2.5 px-4 text-xs font-bold text-[#162a21] hover:bg-[#f3efe6] transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>📋</span>
-                  <span>View in Property Registry</span>
-                </button>
-              </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
