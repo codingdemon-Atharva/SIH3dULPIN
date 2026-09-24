@@ -705,6 +705,7 @@ export default function VolumetricViewer({
   onPropertySelect,
   isInspectorClosed: propIsInspectorClosed,
   onInspectorCloseChange,
+  style,
 }: {
   building: ParsedBuilding;
   selectedPropertyId?: string | null;
@@ -713,6 +714,7 @@ export default function VolumetricViewer({
   ) => void;
   isInspectorClosed?: boolean;
   onInspectorCloseChange?: (closed: boolean) => void;
+  style?: React.CSSProperties;
 }) {
   const [selected, setSelected] =
     useState<Property2D | null>(
@@ -1117,6 +1119,7 @@ export default function VolumetricViewer({
           "1px solid #cbd5e1",
         background:
           "#f8fafc",
+        ...style,
       }}
     >
       <Canvas
