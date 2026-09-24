@@ -718,8 +718,6 @@ export default function VolumetricViewer({
   const [isInspectorClosed, setIsInspectorClosed] =
     useState<boolean>(false);
 
-  const controlsRef = useRef<any>(null);
-
   const isIsolated = Boolean(selected && isInspectorClosed);
 
   // ----------------------------------------------------------
@@ -898,6 +896,33 @@ export default function VolumetricViewer({
     }, [
       centeredBuilding,
     ]);
+
+  // ----------------------------------------------------------
+  // Selected Unit Data for Isolation / Focusing
+  // ----------------------------------------------------------
+
+  const selectedUnitData = useMemo(() => {
+    if (!selected) return null;
+    for (const floor of centeredBuilding) {
+      const match = floor.units.find((u) => u.id === selected.id);
+      if (match) {
+        const elevation = Number(floor.elevation) || 0;
+        const floorHeight = Number(floor.height) || DEFAULT_FLOOR_HEIGHT;
+        const center = getPolygonCenter(match.polygon);
+        const heightMeters =
+          Number((match as StyledProperty).heightMeters) || floorHeight;
+        return {
+          unit: match,
+          center: [
+            center.x,
+            elevation + heightMeters / 2,
+            center.y,
+          ] as [number, number, number],
+        };
+      }
+    }
+    return null;
+  }, [selected, centeredBuilding]);
 
   // ----------------------------------------------------------
   // Total vertical height
@@ -1248,6 +1273,13 @@ export default function VolumetricViewer({
                 ) {
                   return null;
                 }
+                const visibleUnits = isIsolated
+                  ? floor.units.filter(
+                      (unit) => unit.id === selected?.id
+                    )
+                  : floor.units;
+
+                if (visibleUnits.length === 0) return null;
 
                 return (
                   <group
@@ -1391,6 +1423,15 @@ export default function VolumetricViewer({
             0.03
           }
           target={controlsTarget}
+          target={
+            isIsolated && selectedUnitData
+              ? selectedUnitData.center
+              : [
+                  0,
+                  totalHeight / 2,
+                  0,
+                ]
+          }
         />
       </Canvas>
 
