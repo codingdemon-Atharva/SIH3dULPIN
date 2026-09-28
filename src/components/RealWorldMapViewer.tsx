@@ -909,36 +909,44 @@ export default function RealWorldMapViewer({
             const space =
               `${unit.spaceType ?? ""} ${unit.unitNumber ?? ""}`.toLowerCase();
 
-            // Earthy forest green & natural tones strictly conforming to BhuVista design system
-            let fillColor = "#2d6a4f"; // Forest Green (default structure/residential)
+            // Render distinct colors based on structural usage / space type
+            let fillColor = (unit as any).fillColor || (unit as any).color;
 
-            if (
-              space.includes("stair") ||
-              space.includes("staircase")
-            ) {
-              fillColor = "#d4a373"; // Warm Sand / Earthy Gold
-            } else if (
-              space.includes("lift") ||
-              space.includes("elevator")
-            ) {
-              fillColor = "#52b788"; // Sage Accent
-            } else if (
-              space.includes("corridor") ||
-              space.includes("passage")
-            ) {
-              fillColor = "#74c69d"; // Soft Meadow Green
-            } else if (
-              space.includes("toilet") ||
-              space.includes("restroom") ||
-              space.includes("utility")
-            ) {
-              fillColor = "#b7b7a4"; // Muted Earth Grey/Taupe
-            } else if (
-              space.includes("commercial") ||
-              space.includes("office") ||
-              space.includes("shop")
-            ) {
-              fillColor = "#1b4332"; // Deep Pine
+            if (!fillColor) {
+              if (
+                space.includes("stair") ||
+                space.includes("staircase")
+              ) {
+                fillColor = "#f97316"; // Vibrant Orange (Stairs)
+              } else if (
+                space.includes("lift") ||
+                space.includes("elevator")
+              ) {
+                fillColor = "#06b6d4"; // Bright Cyan (Elevator Core)
+              } else if (
+                space.includes("corridor") ||
+                space.includes("passage") ||
+                space.includes("hall")
+              ) {
+                fillColor = "#a855f7"; // Deep Purple (Passage / Corridor)
+              } else if (
+                space.includes("toilet") ||
+                space.includes("restroom") ||
+                space.includes("w/c") ||
+                space.includes("utility")
+              ) {
+                fillColor = "#ec4899"; // Pink / Rose (Restroom / Utility)
+              } else if (
+                space.includes("commercial") ||
+                space.includes("office") ||
+                space.includes("shop") ||
+                space.includes("lab") ||
+                space.includes("classroom")
+              ) {
+                fillColor = "#10b981"; // Emerald Green (Commercial / Workspace)
+              } else {
+                fillColor = "#3b82f6"; // Royal Blue (Residential / Room Unit)
+              }
             }
 
             const base =
@@ -2695,7 +2703,7 @@ export default function RealWorldMapViewer({
       {/* ---------------------------------------------------- */}
       {/* LEGEND */}
       {/* ---------------------------------------------------- */}
-      <div className="absolute left-6 bottom-36 z-20 flex flex-wrap items-center gap-3 px-3.5 py-2 bg-[#fdfbf7]/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21] backdrop-blur-md">
+      <div className="absolute left-6 bottom-36 z-20 flex flex-wrap items-center gap-3 px-3.5 py-2 bg-[#fdfbf7]/95 rounded-xl border border-[#e2dad0] shadow-md text-[11px] text-[#162a21] backdrop-blur-md max-w-[calc(100vw-3rem)]">
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-sm border border-[#2d6a4f] bg-[#2d6a4f]/20 inline-block" />
           <span className="font-semibold">Parcel</span>
@@ -2705,8 +2713,28 @@ export default function RealWorldMapViewer({
           <span className="font-semibold">Selected</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <LegendDot color="#2d6a4f" />
-          <span className="font-semibold">3D Building</span>
+          <LegendDot color="#3b82f6" />
+          <span className="font-semibold">Room</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <LegendDot color="#f97316" />
+          <span className="font-semibold">Stairs</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <LegendDot color="#06b6d4" />
+          <span className="font-semibold">Lift</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <LegendDot color="#a855f7" />
+          <span className="font-semibold">Passage</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <LegendDot color="#ec4899" />
+          <span className="font-semibold">Restroom</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <LegendDot color="#10b981" />
+          <span className="font-semibold">Commercial</span>
         </div>
       </div>
     </div>
