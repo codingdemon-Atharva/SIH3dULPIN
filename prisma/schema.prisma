@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated"
 }
 
 datasource db {
@@ -7,13 +8,15 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           String     @id @default(uuid())
   name         String
-  email        String   @unique
+  email        String     @unique
   passwordHash String
-  role         UserRole @default(VIEWER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         UserRole   @default(VIEWER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  buildings    Building[]
 }
 
 model Building {
@@ -26,9 +29,12 @@ model Building {
   verifiedAt     DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
+  surveyor       User?          @relation(fields: [surveyorId], references: [id])
   floors         Floor[]
 
   @@index([approvalStatus])
+  @@index([surveyorId])
 }
 
 model Floor {
@@ -37,6 +43,7 @@ model Floor {
   floorNumber Int
   elevation   Float
   height      Float
+
   building    Building   @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   units       Property[]
 
@@ -52,6 +59,7 @@ model Property {
   spaceType  String
   polygon    Json
   createdAt  DateTime @default(now())
+
   floor      Floor    @relation(fields: [floorId], references: [id], onDelete: Cascade)
 }
 
